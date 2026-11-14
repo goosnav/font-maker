@@ -19,6 +19,4 @@ OpenCV: https://github.com/opencv/opencv (Apache-2.0).
 FontTools: https://github.com/fonttools/fonttools (MIT).
 Pyodide: https://github.com/pyodide/pyodide (MPL-2.0).
 
-Goosnav UI Regular/Bold: square-pixel derivatives of Liberation Sans 2.1.5,
-renamed under SIL OFL 1.1. See fonts/Liberation-LICENSE.txt. Reproducible
-source: scripts/build-ui-font.py. Original pixel toolbar icons: Goosnav.
+Original local toolbar artwork by Goosnav.

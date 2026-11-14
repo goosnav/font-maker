@@ -66,4 +66,4 @@ On macOS, install Go, uv, and squashfs-tools as build tools, then run:
 python3 tools/package_local.py
 ```
 
-The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.1-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
+The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.2-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.

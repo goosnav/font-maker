@@ -390,7 +390,7 @@ function renderEditor() {
       delete next.glyphs[cp].components;
     }, false);
     painter!.project = project();
-  }, message => { if (message) status(message); });
+  }, message => status(message || "Ready"));
   mountReferencePicker($("#editor-reference") as HTMLSelectElement, p);
   const host = $(".canvas-host");
   const available = Math.max(192, Math.min(host.clientWidth, host.clientHeight) - 26);
