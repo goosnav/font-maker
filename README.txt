@@ -14,8 +14,9 @@ Linux may require marking the AppImage executable in its file properties.
 Verification: browser workflows were exercised in Chrome, Firefox, and
 Playwright WebKit on Apple Silicon macOS. The native Apple Silicon launcher
 passed concurrent launch, repeat launch, project recovery, and Quit checks.
-Visible native-browser interaction still needs verification. Windows, Linux, Intel Mac, physical
-print-and-scan trials, and physical pen devices are not yet acceptance-tested.
+Drawing, reference overlays, and Test font also passed in native Safari.
+Windows, Linux, Intel Mac, physical print-and-scan trials, and physical pen
+devices are not yet acceptance-tested.
 This preview is not an accepted M1a release.
 
 User data and logs:
