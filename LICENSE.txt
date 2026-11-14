@@ -1,0 +1,5 @@
+Copyright (c) 2026 Goosnav LLC. All rights reserved.
+
+Third-party software and bundled fonts remain under their respective licenses.
+See app/static/THIRD_PARTY.txt, app/static/licenses/, and app/static/fonts/.
+This notice does not replace or restrict those third-party license terms.

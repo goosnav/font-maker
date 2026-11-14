@@ -1,0 +1,86 @@
+export const HELP = [
+  {
+    title: "Start a font",
+    text: "New opens a blank font or starts with an open reference font. Try your brush and resolution on H, then choose Start drawing. Every project can contain Regular, Bold, Italic, and custom styles.",
+    action: "new",
+    label: "New project",
+  },
+  {
+    title: "Draw a character",
+    text: "Open a character in the grid. Pencil paints solid pixels; Brush, Eraser, Fill, Line, Rectangle, and Ellipse share the size control. Select a region, then drag it to move. Copy and paste work within the canvas. Hold Space and drag to pan; Ctrl/⌘ + wheel zooms.",
+    action: "characters",
+    label: "Characters",
+  },
+  {
+    title: "Pixel and detailed fonts",
+    text: "Pixel defaults to 16 pixels per em and hard square edges. Detailed uses a finer canvas. Settings previews resolution changes and preserves original artwork. Pixel shapes remain square, but other applications may antialias them.",
+    action: "settings",
+    label: "Drawing settings",
+  },
+  {
+    title: "Create Bold, Italic, and other styles",
+    text: "Use + Style beside the style selector. Duplicate your existing letters or start blank. The previous style becomes the translucent reference automatically. You can choose any other family style in the Reference control.",
+    action: "style",
+    label: "Add style",
+  },
+  {
+    title: "Import and edit an existing font",
+    text: "Import font accepts TTF and OTF. Add it as a reference, use it to create an editable style, or start a new font project. Choose Pixel settings to downsample it. The original file stays inside your project. Use fonts you have permission to modify and distribute; imported notices are retained.",
+    action: "import-font",
+    label: "Import font",
+  },
+  {
+    title: "References and calligraphy guides",
+    text: "The reference sits on the real baseline at its font size. Baseline, x-height, capital height, ascender, descender, and side bearings help keep letters consistent. Reference and guide colors, opacity, and visibility are independent. They do not export as ink.",
+    action: "characters",
+    label: "Open characters",
+  },
+  {
+    title: "Print drawing sheets",
+    text: "Paper creates 8.5 × 11 inch sheets with 30 drawing cells. Print at Actual size / 100%. Keep registration marks visible. Draw in dark ink inside the cells, with letters resting on the baseline. Print all standard packs, selected packs, or unfinished characters.",
+    action: "paper",
+    label: "Paper sheets",
+  },
+  {
+    title: "Scan or photograph your sheets",
+    text: "Use a flat scan or a sharp photo of one full page, including its corner marks. Even lighting helps. PDF, PNG, JPEG, WebP, TIFF, and HEIC are supported. Review the detected page and corner alignment before importing characters. Original files remain in the project.",
+    action: "scan",
+    label: "Import scans",
+  },
+  {
+    title: "Review imported letters",
+    text: "Compare each cleaned letter with its original crop. Adjust ink threshold and cleanup, or edit crop and position. Empty cells never erase existing letters. When a character already exists, choose Keep existing or Replace selected.",
+    action: "paper",
+    label: "Paper workspace",
+  },
+  {
+    title: "Spacing, kerning, and accents",
+    text: "Advance width controls where the next letter begins. The space character has its own width. Preview lets you adjust specific pairs such as AV. In the editor, Compose accent creates a character from an existing base and mark; their positions remain editable. Mark anchors control combining accents.",
+    action: "preview",
+    label: "Preview text",
+  },
+  {
+    title: "Save project or export font",
+    text: "Save project creates a .goosnavfont file containing every style, drawings, reference imports, and scan originals. Export font creates installable TTF or OTF files for the current style or whole family. Export does not replace saving the project.",
+    action: "export",
+    label: "Export font",
+  },
+  {
+    title: "Autosave and recovery",
+    text: "The local edition autosaves in Goosnav Font’s application-data folder. The web edition autosaves in this browser. Browser cleanup can remove recovery data; save project files for durable copies and moving between devices.",
+    action: "save",
+    label: "Save project",
+  },
+  {
+    title: "Install your font",
+    text: "On macOS, open a TTF or OTF in Font Book and choose Install. On Windows, open the font and choose Install. On Linux, open it with your font viewer or copy it into your personal fonts folder. Applications may need to restart after installation.",
+    action: "export",
+    label: "Export font",
+  },
+  {
+    title: "Keyboard shortcuts",
+    text: "Ctrl/⌘+S saves the project. Ctrl/⌘+Z undoes; Shift+Ctrl/⌘+Z redoes. Ctrl/⌘+O opens a project. In the canvas, Ctrl/⌘+C and V copy and paste; Delete clears the selection. Space-drag pans.",
+    action: "characters",
+    label: "Characters",
+  },
+];

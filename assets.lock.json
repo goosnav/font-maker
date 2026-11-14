@@ -1,0 +1,22 @@
+{
+  "googleFontsRevision": "cc39c4c2c304bc368c9b7c311ea2bcc6013299fe",
+  "pyodide": "314.0.8",
+  "unicode": "17.0.0",
+  "files": {
+    "runtime/pyodide/fonttools-4.62.1-py3-none-any.whl": "0d1516e073fd0a8d8e6d9af46417b6a26209a42518024a18f7085e72d2599605",
+    "node_modules/.cache/liberation.tar.gz": "7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0",
+    "fonts/noto-sans.ttf": "bfb7bb691513f12e734dc346c03a03f784912432d7e3fa8e56efcf906fe86b3d",
+    "fonts/noto-sans-OFL.txt": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a",
+    "fonts/unifraktur.ttf": "d64afc0547059dd2e4a78da48bda0aba0a9901be58c7f8c201a8b2b6b4492cc8",
+    "fonts/unifraktur-OFL.txt": "96199bf9ff12dd471a66911dee95440737b437e7f5a6fd30e9e950c16d66e8df",
+    "fonts/comic-neue.ttf": "a0ee5a37c8b27c4db0700137d928598b1e23b0089e1546a8961909176b779360",
+    "fonts/comic-neue-OFL.txt": "7c38a22e5878e60fe423360553e63dd7be23d29f1f60336034935dbfc96e8320",
+    "fonts/paprika.ttf": "a53bba54989b5401d61115332ad2554c3cc6b7ab82e02cb0bd1abc4d48ad63cb",
+    "fonts/paprika-OFL.txt": "96c9adf4335fee2c0b8028009d85d6bf59e6bde8d378fe589f188b7390eae9ce",
+    "node_modules/.cache/UnicodeData.txt": "2e1efc1dcb59c575eedf5ccae60f95229f706ee6d031835247d843c11d96470c",
+    "fonts/Liberation-LICENSE.txt": "93fed46019c38bbe566b479d22148e2e8a1e85ada614accb0211c37b2c61c19b",
+    "fonts/liberation-mono.ttf": "f2b83c763e8afd21709333370bed4774337fae82267937e2b5aea7e2fbd922c1",
+    "fonts/liberation-sans.ttf": "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8",
+    "fonts/liberation-serif.ttf": "058ea80864aef09a23f45cbec2bb5400bc3dfbdea01c3f10538a21fcb497fb74"
+  }
+}

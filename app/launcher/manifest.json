@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "app_id": "com.goosnav.font",
+  "display_name": "Goosnav Font",
+  "python": "3.14.2",
+  "entry_module": "goosnav_font.start",
+  "ready_path": "/health/ready",
+  "startup_timeout_seconds": 180,
+  "preferred_port": 0,
+  "data_directory_name": "Goosnav Font"
+}

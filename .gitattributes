@@ -1,0 +1,3 @@
+# Preserve upstream notices byte-for-byte, including their line endings.
+public/fonts/*.txt -text -whitespace
+public/licenses/* -text -whitespace
