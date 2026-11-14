@@ -62,6 +62,7 @@ a {
   height: 16px;
   filter: brightness(0) invert(1);
 }
+.titlebar img, .start .mark { image-rendering:pixelated; object-fit:contain; }
 .titlebar strong {
   white-space: nowrap;
   overflow: hidden;
