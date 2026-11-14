@@ -28,7 +28,27 @@ python3 app/src/goosnav_font/start.py
 
 Browser tests use Chrome, Playwright Firefox, and Playwright WebKit. Install the latter with `npx playwright install firefox webkit`.
 
-`npm run deploy` deploys the build through Cloudflare Workers Static Assets. A small Worker sets the OpenCV worker’s required security policy. There are no project-upload endpoints, accounts, analytics, or cloud storage.
+## Cloudflare Workers
+
+Connect this repository and select the `main` branch. Use these Workers Builds settings:
+
+- Root directory: repository root (leave blank)
+- Build command: `npm run build`
+- Deploy command: `npm run deploy`
+
+The build automatically downloads and verifies the pinned fonts and processing assets. It produces `app/static`; do not commit this generated directory. `wrangler.jsonc` configures Workers Static Assets and the OpenCV worker's security policy. No project content is sent to Cloudflare.
+
+For a manual deployment:
+
+```sh
+npm ci
+npm run build
+npm run deploy:check
+npx wrangler login
+npm run deploy
+```
+
+A deleted/rotated build-token error requires selecting a valid token in the Worker's **Settings → Builds**. A repository-fetch error occurs before the build command: check that `main` exists and the Cloudflare GitHub installation can access `goosnav/font-maker`. Neither error is fixed by changing application code.
 
 ## Formats
 
@@ -46,4 +66,4 @@ On macOS, install Go, uv, and squashfs-tools as build tools, then run:
 python3 tools/package_local.py
 ```
 
-The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.0-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
+The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.1-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
