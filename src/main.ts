@@ -67,6 +67,7 @@ let savedRevision = -1,
   autoChain = Promise.resolve(),
   busyDepth = 0;
 let inspectorOpen = false;
+let importAsNewProject = false;
 const root = $("#app");
 root.innerHTML = `<main class="window"><header class="titlebar"><img src="${xpLogoIcon}" alt=""><strong id="title">Goosnav Font</strong><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></header><div class="commandbar"><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="import-font">Import font…</button><button data-command="settings">Project settings…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">New</button><button data-command="open" title="Open project">Open</button><div class="split"><button data-command="save" title="Save project (⌘/Ctrl+S)">${icon("save")} Save</button><details><summary aria-label="Save options">▾</summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">↶</button><button data-command="redo" title="Redo" aria-label="Redo">↷</button><span class="spacer"></span></div><div class="family-bar" hidden><span class="style-label">Style</span><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span><span class="edition">On this device</span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
 const workspace = $("#workspace");
@@ -173,7 +174,7 @@ function changed(p: Project) {
       });
   }, 650);
 }
-function setProject(p: Project, saved = false) {
+function setProject(p: Project, saved = false, persist = true) {
   history = new History(p, changed);
   savedRevision = saved ? p.revision : -1;
   saveHandle = undefined;
@@ -183,7 +184,8 @@ function setProject(p: Project, saved = false) {
   stateFilter = "";
   scrollTop = 0;
   tab = "characters";
-  changed(p);
+  if (persist) changed(p);
+  else $("#save-state").textContent = saved ? "" : "Recovered project";
   render();
   status("Ready");
 }
@@ -220,7 +222,7 @@ function render() {
     return;
   }
   if (!history) {
-    renderStart();
+    workspace.innerHTML = '<div class="empty" role="status">Opening character book…</div>';
     return;
   }
   if (tab === "characters") {
@@ -234,28 +236,28 @@ function render() {
       scan: () => input("#scan-file").click(),
     });
 }
-function renderStart() {
-  workspace.innerHTML =
-    `<div class="start"><img class="mark" src="${xpLogo}" alt="Goosnav"><h1>Goosnav Font</h1><div class="start-actions"><button class="primary" data-command="new">New font</button><button data-command="open">Open project</button><button data-command="import-font">Import font</button></div><div class="recent" id="recovery-start" hidden></div></div>`;
-  void loadRecovery()
-    .then((bytes) => {
-      const target = document.querySelector("#recovery-start");
-      if (!bytes || !target) return;
-      target.innerHTML =
-        '<div class="recovery-row"><span>Previous session available</span><button id="restore-project">Restore</button></div>';
-      target.removeAttribute("hidden");
-      $("#restore-project").onclick = () => {
-        try {
-          setProject(decodeProject(bytes));
-        } catch (e) {
-          error(e);
-        }
-      };
-    })
-    .catch((e) => {
-      status("Recovery storage unavailable. Manual project files still work.");
-      console.warn(e);
-    });
+function showWelcome(recovered: boolean) {
+  const d = dialog(
+    "Goosnav Font",
+    `<div class="welcome"><img class="mark" src="${xpLogo}" alt="Goosnav"><p class="welcome-project">${recovered ? "Continue " : "Ready to draw: "}<strong>${esc(project().name)}</strong></p><div class="welcome-actions"><button class="primary" data-start="new">New font</button><button data-start="open">Open project</button><button data-start="import-font">Import font</button></div></div><div class="actions"><button id="continue-project">Continue drawing</button></div>`,
+  );
+  d.classList.add("welcome-dialog");
+  $("#continue-project", d).onclick = () => d.close();
+  d.querySelectorAll<HTMLButtonElement>("[data-start]").forEach(button => {
+    button.onclick = () => {
+      const action = button.dataset.start!;
+      d.close();
+      importAsNewProject = action === "import-font";
+      if (action === "import-font") input("#import-font-file").click();
+      else void command(action);
+    };
+  });
+}
+function characterCaption(c: Character) {
+  if (c.cp >= 65 && c.cp <= 90) return `Capital ${String.fromCodePoint(c.cp)}`;
+  if (c.cp >= 97 && c.cp <= 122) return `Lowercase ${String.fromCodePoint(c.cp)}`;
+  if (c.cp >= 48 && c.cp <= 57) return `Digit ${String.fromCodePoint(c.cp)}`;
+  return c.name.charAt(0) + c.name.slice(1).toLowerCase();
 }
 function selectedCharacters() {
   return project().characters.map(
@@ -304,7 +306,7 @@ function renderGrid() {
       chars
         .map((c) => {
           const g = p.glyphs[c.cp];
-          return `<button class="glyph-cell" data-cp="${c.cp}" data-status="${g?.status || "unfinished"}" aria-label="${esc(c.name)} ${label(c.cp)}" title="${esc(c.name)}"><span class="state">${g?.status === "drawn" ? "✓" : g?.status === "inherited" ? "●" : g?.status === "review" ? "!" : ""}</span><span class="thumb">${g?.bitmap ? `<img src="${g.bitmap}" alt="">` : `<span class="placeholder">${isSpace(c.cp) ? "␣" : esc(String.fromCodePoint(c.cp))}</span>`}</span><span class="caption">${esc(String.fromCodePoint(c.cp))} <span>${label(c.cp)}</span></span></button>`;
+          return `<button class="glyph-cell" data-cp="${c.cp}" data-status="${g?.status || "unfinished"}" aria-label="${esc(c.name)} ${label(c.cp)}" title="${esc(c.name)}"><span class="state">${g?.status === "drawn" ? "✓" : g?.status === "inherited" ? "●" : g?.status === "review" ? "!" : ""}</span><span class="thumb">${g?.bitmap ? `<img src="${g.bitmap}" alt="">` : `<span class="placeholder">${isSpace(c.cp) ? "␣" : esc(String.fromCodePoint(c.cp))}</span>`}</span><span class="caption"><span class="glyph-label">${esc(characterCaption(c))}</span><span class="unicode">${label(c.cp)}</span></span></button>`;
         })
         .join("") || '<p class="empty">No matching characters.</p>';
     document.querySelectorAll<HTMLButtonElement>(".glyph-cell").forEach(
@@ -709,6 +711,7 @@ async function newFont() {
     "New font",
     `<form>${field("Family name", '<input id="new-name" value="My Font" maxlength="100" required>')}<div class="radio-row"><label><input type="radio" name="start" value="blank" checked> Blank</label><label><input type="radio" name="start" value="seed"> Start from font</label></div>${field("Reference", `<select id="new-reference">${REFERENCES.map((r) => `<option value="${r.id}">${r.name}</option>`).join("")}</select>`)}<fieldset><legend>Character packs</legend><div class="pack-list">${packs.map((k) => `<label><input type="checkbox" name="pack" value="${k}" ${catalog.some((c) => c.pack === k && c.paper) ? "checked" : ""}> ${k.charAt(0).toUpperCase() + k.slice(1).replaceAll("-", " ")}</label>`).join("")}</div></fieldset><div id="new-error" role="alert"></div><div class="actions"><button type="submit" class="primary">Continue</button></div></form>`,
   );
+  d.classList.add("new-project-dialog");
   mountReferencePicker($("#new-reference", d) as HTMLSelectElement);
   d.querySelector("form")!.onsubmit = async (e) => {
     e.preventDefault();
@@ -793,7 +796,7 @@ function styleDialog() {
     d.close();
   };
 }
-async function importFontFile(file: File) {
+async function importFontFile(file: File, newFamily = false) {
   if (file.size > 25 * 1024 * 1024)
     throw Error("Font files must be under 25 MB.");
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -818,7 +821,7 @@ async function importFontFile(file: File) {
   await loadFace(id, holder);
   const d = dialog(
     "Import font",
-    `<div class="font-swatch" style="font-family:'gfn-${id}'">Aa Bb Cc 0123</div><p><strong>${esc(source.name)}</strong> · ${Object.keys(info.metrics).length} characters</p><form><label><input type="radio" name="import-use" value="reference" ${history ? "checked" : ""} ${history ? "" : "disabled"}> Reference only</label><label><input type="radio" name="import-use" value="style" ${history ? "" : "disabled"}> Editable style in this project</label><label><input type="radio" name="import-use" value="project" ${history ? "" : "checked"}> New editable font project</label>${field("Family name", `<input id="import-family" value="${esc(source.name + " Custom")}" maxlength="100" required>`)}${field("Style name", `<input id="import-style" value="${esc(info.style || "Regular")}" maxlength="60">`)}<p class="note">Use a font you have permission to modify and distribute. Its original file and notices stay in the project.</p><div class="actions"><button type="submit" class="primary">Import</button></div></form>`,
+    `<div class="font-swatch" style="font-family:'gfn-${id}'">Aa Bb Cc 0123</div><p><strong>${esc(source.name)}</strong> · ${Object.keys(info.metrics).length} characters</p><form><label><input type="radio" name="import-use" value="reference" ${history && !newFamily ? "checked" : ""} ${history ? "" : "disabled"}> Reference only</label><label><input type="radio" name="import-use" value="style" ${history ? "" : "disabled"}> Editable style in this project</label><label><input type="radio" name="import-use" value="project" ${!history || newFamily ? "checked" : ""}> New editable font project</label>${field("Family name", `<input id="import-family" value="${esc(source.name + " Custom")}" maxlength="100" required>`)}${field("Style name", `<input id="import-style" value="${esc(info.style || "Regular")}" maxlength="60">`)}<p class="note">Use a font you have permission to modify and distribute. Its original file and notices stay in the project.</p><div class="actions"><button type="submit" class="primary">Import</button></div></form>`,
   );
   d.querySelector("form")!.onsubmit = async (e) => {
     e.preventDefault();
@@ -908,6 +911,10 @@ async function saveProject(as = false) {
         await writer.write(bytes);
         await writer.close();
       } else download(bytes, name, "application/zip");
+      clearTimeout(autoTimer);
+      await autoChain.catch(() => {});
+      try { await saveRecovery(bytes); }
+      catch { notify("Project saved. Recovery storage is unavailable."); }
       if (
         history?.project.id === p.id &&
         history.project.revision === p.revision
@@ -985,6 +992,7 @@ async function command(cmd: string) {
         input("#open-project-file").click();
         break;
       case "import-font":
+        importAsNewProject = false;
         input("#import-font-file").click();
         break;
       case "save":
@@ -1089,10 +1097,12 @@ input("#open-project-file").onchange = async () => {
 };
 input("#import-font-file").onchange = async () => {
   const file = input("#import-font-file").files?.[0];
+  const newFamily = importAsNewProject;
+  importAsNewProject = false;
   input("#import-font-file").value = "";
   if (file)
     try {
-      await importFontFile(file);
+      await importFontFile(file, newFamily);
     } catch (e) {
       error(e);
     }
@@ -1149,9 +1159,20 @@ async function start() {
         "Character catalog is missing. Run npm run assets before building.",
       );
     catalog = (await r.json()).characters;
-    header();
-    render();
-    status("Ready");
+    let recovered: Project | undefined;
+    let recoveryError = false;
+    try {
+      const bytes = await loadRecovery();
+      if (bytes) recovered = decodeProject(bytes);
+    } catch {
+      recoveryError = true;
+    }
+    const standardPacks = new Set(catalog.filter(c => c.paper).map(c => c.pack));
+    const base = recovered ?? newProject("My Font", catalog.filter(c => standardPacks.has(c.pack)).map(c => c.cp));
+    // Reading a session must never replace the cached original with a blank project.
+    setProject(base, !recovered, false);
+    showWelcome(!!recovered);
+    if (recoveryError) notify("Could not restore the previous session. Its saved copy has been kept.");
     if (isLocal()) $(".edition").textContent = "Local app";
   } catch (e) {
     error(e);

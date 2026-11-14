@@ -4,6 +4,8 @@ Draw a typeface on paper or on screen. Create Regular, Bold, Italic, and custom 
 
 The local and Cloudflare editions share one browser editor and process fonts and scans on the device. Save `.goosnavfont` files for durable storage and transferring projects. The in-app Help tab covers the workflow.
 
+The app opens to the character book with your recovered session, or a default project. The initial popup offers New font, Open project, and Import font; close it to keep drawing. Use the style selector above the book to switch variants. The pixel-grid Goosnav logo is available as PNG and SVG in `assets/`.
+
 This is a development preview. Cross-built launchers do not establish native platform support. See the downloadable README for verification limits.
 
 ## Develop
@@ -70,4 +72,4 @@ On macOS, install Go, uv, and squashfs-tools as build tools, then run:
 python3 tools/package_local.py
 ```
 
-The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.4-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
+The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.5-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.

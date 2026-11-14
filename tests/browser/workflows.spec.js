@@ -46,7 +46,7 @@ test("paint, create a style referencing Regular, save and reopen the family", as
   );
   await expect(page.locator("#save-state")).toHaveText("Recovery saved");
   await page.reload();
-  await page.getByRole("button", { name: "Restore", exact: true }).click();
+  await page.getByRole("button", { name: "Continue drawing", exact: true }).click();
   await expect(page.locator("#style-select option")).toHaveCount(2);
   await expect(page.locator('[data-cp="65"]')).toHaveAttribute(
     "data-status",
@@ -164,6 +164,7 @@ test("letter PDF round trip identifies characters and removes empty guide cells"
 test("help search and narrow layout remain usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await page.getByRole("button", { name: "Continue drawing", exact: true }).click();
   await page.getByRole("tab", { name: "Help", exact: true }).click();
   await page.getByRole("searchbox", { name: "Search help" }).fill("styles");
   await expect(page.locator(".help-item")).not.toHaveCount(0);

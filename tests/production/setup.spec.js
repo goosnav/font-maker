@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+test.beforeEach(async ({ page }) => {
+  // Each independent test starts with an empty local recovery slot.
+  await page.route("**/api/recovery", route => route.request().method() === "GET"
+    ? route.fulfill({ status: 404 }) : route.continue());
+});
 async function setup(page) {
   await page.goto("/");
   await page.getByRole("button", { name: "New font", exact: true }).click();
@@ -115,6 +120,7 @@ test("Continue opens seeded settings immediately and a failed import preserves t
   expect(await page.locator(".paint-canvas").evaluate(c => c.toDataURL())).toBe(before);
   await page.unroute("**/engine/font.worker.js");
   await page.getByRole("button", { name: "Start drawing", exact: true }).click();
+  await expect(page.locator(".settings-dialog")).toHaveCount(0, { timeout: 60000 });
   await expect(page.locator(".glyph-grid")).toBeVisible({ timeout: 60000 });
   await expect(page.locator('[data-cp="72"]')).toHaveAttribute("data-status", "drawn");
   expect(await page.locator('[data-status="inherited"]').count()).toBeGreaterThan(20);

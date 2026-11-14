@@ -40,6 +40,8 @@ for (const [name, width, height] of screens) {
       viewport: { width, height }, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
     });
     const page = await context.newPage();
+    await page.route("**/api/recovery", route => route.request().method() === "GET"
+      ? route.fulfill({ status: 404 }) : route.continue());
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     try {
