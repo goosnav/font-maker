@@ -104,6 +104,9 @@ for (const [name, width, height] of screens) {
       const download = page.waitForEvent("download");
       await page.getByRole("button", { name: "Export", exact: true }).tap();
       expect((await download).suggestedFilename()).toMatch(/\.ttf$/);
+      await page.getByRole("tab", { name: "Paper", exact: true }).tap();
+      await inViewport(page.locator("#paper-set"), page);
+      expect((await page.locator("#paper-set").boundingBox()).width).toBeGreaterThan(220);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       expect(errors).toEqual([]);
     } finally { await context.close(); }

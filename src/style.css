@@ -811,6 +811,7 @@ hr {
 .settings-controls .note { margin: 3px 0; }
 .panel-body .field { grid-template-columns: minmax(0, 1fr) 62px; align-items: center; }
 .panel-body .form-grid .field { grid-template-columns: 1fr; }
+.paper-page .panel-body .field { grid-template-columns:minmax(0,1fr); }
 .statusbar { gap:3px; padding:2px 3px; border-top:1px solid #fff; }
 .statusbar > span { height:17px; padding:0 6px; border:1px solid; border-color:var(--xp-shadow) #fff #fff var(--xp-shadow); }
 .statusbar > span:empty { display:none; }
