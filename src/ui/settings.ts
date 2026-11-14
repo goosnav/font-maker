@@ -4,7 +4,7 @@ import {
   type Project,
   type Settings,
 } from "../core/model";
-import { convertResolution, buildFont } from "../core/fonts";
+import { convertResolution, buildFont, seedProject } from "../core/fonts";
 import { Painter } from "./painter";
 import { mountReferencePicker } from "./reference-picker";
 import { dialog, esc, $, input, field } from "./dom";
@@ -25,9 +25,10 @@ export function referenceOptions(p: Project, selected = p.settings.reference) {
 export function editSettings(
   project: Project,
   start = false,
+  seedSource?: string,
 ): Promise<Project | undefined> {
   const d = dialog(
-    start ? "Try your font" : "Project settings",
+    start ? "Font settings" : "Project settings",
     `<div class="settings-layout"><div class="settings-controls">${field("Family name", `<input id="setting-family" value="${esc(project.name)}" maxlength="100">`)}${field("Drawing mode", '<select id="setting-mode"><option value="pixel">Pixel</option><option value="detailed">Detailed</option></select>')}${field("Pixels per em", '<select id="setting-resolution"></select>')}${field("Reference", `<select id="setting-reference">${referenceOptions(project)}</select>`)}<div class="overlay-row"><label><input id="setting-ref-visible" type="checkbox"> Reference</label><input id="setting-ref-opacity" type="range" min="0" max="1" step="0.01" aria-label="Reference opacity"><input id="setting-ref-color" type="color" aria-label="Reference color"></div><div class="overlay-row"><label><input id="setting-guide-visible" type="checkbox"> Guides</label><input id="setting-guide-opacity" type="range" min="0" max="1" step="0.01" aria-label="Guide opacity"><input id="setting-guide-color" type="color" aria-label="Guide color"></div><label><input id="setting-mono" type="checkbox"> Monospace</label><div class="form-grid">${field("Letter gap", '<input id="setting-spacing" type="number" min="0" max="1024" step="16">')}${field("Space width", '<input id="setting-space" type="number" min="0" max="4096" step="16">')}</div><details class="advanced"><summary>Guidelines and pen</summary><div>${[
       ["ascender", "Ascender"],
       ["descender", "Descender"],
@@ -183,21 +184,34 @@ export function editSettings(
   $("#apply-settings", d).onclick = async () => {
     const button = input("#apply-settings", d);
     button.disabled = true;
+    const controls = [...d.querySelectorAll<HTMLInputElement>(".settings-layout input, .settings-layout select, .settings-layout button")];
+    controls.forEach(control => control.disabled = true);
+    $(".sample-host", d).inert = true;
     try {
       const settings = read();
-      accepted = await convertResolution(project, settings, (s) => {
+      const candidate = await convertResolution(project, settings, (s) => {
         $("#sample-notice", d).textContent = s;
       });
-      accepted.name =
+      candidate.name =
         input("#setting-family", d).value.trim() || "Untitled Font";
-      if (sample.glyphs[cp]?.bitmap) {
-        accepted.glyphs[cp] = sample.glyphs[cp];
-        if (!accepted.characters.includes(cp)) accepted.characters.push(cp);
+      if (seedSource) {
+        $("#sample-notice", d).textContent = "Preparing starting font…";
+        await seedProject(candidate, seedSource, message => {
+          if (d.open) $("#sample-notice", d).textContent = message;
+        });
       }
+      if (!d.open) return;
+      if (sample.glyphs[cp]?.bitmap) {
+        candidate.glyphs[cp] = sample.glyphs[cp];
+        if (!candidate.characters.includes(cp)) candidate.characters.push(cp);
+      }
+      accepted = candidate;
       d.close();
     } catch (e) {
       $("#sample-notice", d).textContent = String(e);
       button.disabled = false;
+      controls.forEach(control => control.disabled = false);
+      $(".sample-host", d).inert = false;
     }
   };
   $("[data-cancel]", d).onclick = () => d.close();

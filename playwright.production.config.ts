@@ -10,7 +10,7 @@ export default defineConfig({
     reuseExistingServer: false,
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium", channel: "chrome" } },
+    { name: "chromium", use: { browserName: "chromium", channel: process.env.CI ? undefined : "chrome" } },
     { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" } },
   ],

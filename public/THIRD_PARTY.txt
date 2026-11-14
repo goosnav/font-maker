@@ -20,3 +20,6 @@ FontTools: https://github.com/fonttools/fonttools (MIT).
 Pyodide: https://github.com/pyodide/pyodide (MPL-2.0).
 
 Original local toolbar artwork by Goosnav.
+
+Pixel Tahoma UI fonts: copied from goosnav/gsnv-paint, derived from WineTahoma.
+See licenses/pixel-tahoma.NOTICE.txt for copyright, license, and source.

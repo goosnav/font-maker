@@ -64,7 +64,7 @@ let savedRevision = -1,
   autoChain = Promise.resolve(),
   busyDepth = 0;
 const root = $("#app");
-root.innerHTML = `<main class="window"><header class="titlebar"><img src="/brand/logo-icon.svg" alt=""><strong id="title">Goosnav Font</strong><span class="edition">On this device</span></header><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="import-font">Import font…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">New</button><button data-command="open" title="Open project">Open</button><div class="split"><button data-command="save" title="Save project (⌘/Ctrl+S)">${icon("save")} Save</button><details><summary aria-label="Save options">▾</summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">↶</button><button data-command="redo" title="Redo" aria-label="Redo">↷</button><span class="spacer"></span><div class="family-bar" hidden><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
+root.innerHTML = `<main class="window"><header class="titlebar"><img src="/brand/logo-icon.svg" alt=""><strong id="title">Goosnav Font</strong><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></header><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="import-font">Import font…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">New</button><button data-command="open" title="Open project">Open</button><div class="split"><button data-command="save" title="Save project (⌘/Ctrl+S)">${icon("save")} Save</button><details><summary aria-label="Save options">▾</summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">↶</button><button data-command="redo" title="Redo" aria-label="Redo">↷</button><span class="spacer"></span><div class="family-bar" hidden><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span><span class="edition">On this device</span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
 const workspace = $("#workspace");
 function status(text: string) {
   $("#status").textContent = text;
@@ -693,7 +693,7 @@ async function newFont() {
   const packs = [...new Set(catalog.map((c) => c.pack))];
   const d = dialog(
     "New font",
-    `<form>${field("Family name", '<input id="new-name" value="My Font" maxlength="100" required>')}<div class="radio-row"><label><input type="radio" name="start" value="blank" checked> Blank</label><label><input type="radio" name="start" value="seed"> Start from font</label></div>${field("Reference", `<select id="new-reference">${REFERENCES.map((r) => `<option value="${r.id}">${r.name}</option>`).join("")}</select>`)}<fieldset><legend>Character packs</legend><div class="pack-list">${packs.map((k) => `<label><input type="checkbox" name="pack" value="${k}" ${catalog.some((c) => c.pack === k && c.paper) ? "checked" : ""}> ${k.replaceAll("-", " ")}</label>`).join("")}</div></fieldset><div class="actions"><button type="submit" class="primary">Try settings</button></div></form>`,
+    `<form>${field("Family name", '<input id="new-name" value="My Font" maxlength="100" required>')}<div class="radio-row"><label><input type="radio" name="start" value="blank" checked> Blank</label><label><input type="radio" name="start" value="seed"> Start from font</label></div>${field("Reference", `<select id="new-reference">${REFERENCES.map((r) => `<option value="${r.id}">${r.name}</option>`).join("")}</select>`)}<fieldset><legend>Character packs</legend><div class="pack-list">${packs.map((k) => `<label><input type="checkbox" name="pack" value="${k}" ${catalog.some((c) => c.pack === k && c.paper) ? "checked" : ""}> ${k.replaceAll("-", " ")}</label>`).join("")}</div></fieldset><div id="new-error" role="alert"></div><div class="actions"><button type="submit" class="primary">Continue</button></div></form>`,
   );
   mountReferencePicker($("#new-reference", d) as HTMLSelectElement);
   d.querySelector("form")!.onsubmit = async (e) => {
@@ -702,7 +702,7 @@ async function newFont() {
       ...d.querySelectorAll<HTMLInputElement>("[name=pack]:checked"),
     ].map((x) => x.value);
     if (!selected.length) {
-      notify("Select at least one character pack.");
+      $("#new-error", d).textContent = "Select at least one character pack.";
       return;
     }
     const p = newProject(
@@ -714,14 +714,7 @@ async function newFont() {
       d.querySelector<HTMLInputElement>("[name=start]:checked")!.value ===
       "seed";
     d.close();
-    if (seed) {
-      const ok = await busy("Preparing starting font…", async () => {
-        await seedProject(p, p.settings.reference, status);
-        return true;
-      });
-      if (!ok) return;
-    }
-    const ready = await editSettings(p, true);
+    const ready = await editSettings(p, true, seed ? p.settings.reference : undefined);
     if (ready) setProject(ready);
   };
 }

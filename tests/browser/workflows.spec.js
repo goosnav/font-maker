@@ -5,7 +5,7 @@ test("paint, create a style referencing Regular, save and reopen the family", as
   await page.goto("/");
   await page.getByRole("button", { name: "New font", exact: true }).click();
   await page.locator("#new-name").fill("Family Test");
-  await page.getByRole("button", { name: "Try settings", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page
     .getByRole("button", { name: "Start drawing", exact: true })
     .click();

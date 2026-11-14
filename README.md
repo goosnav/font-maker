@@ -56,6 +56,8 @@ A deleted/rotated build-token error requires selecting a valid token in the Work
 
 TTF/OTF imports retain original source files and horizontal kerning. Variable fonts use their default instance. Complex-script shaping and variable-font authoring are not supported. Scripts beyond Latin, Greek, and Cyrillic may be used as visual references, but their shaping is not guaranteed.
 
+The interface shares the Pixel Tahoma fonts and Luna controls from `gsnv-paint`. Reference names and specimens use the selected font’s own outlines; a failed load offers a retry instead of a fallback specimen.
+
 Third-party notices are in `public/THIRD_PARTY.txt`, `public/licenses`, and downloaded font license files. Use imported fonts only with the rights needed to modify and distribute them.
 
 ## Package the local preview
@@ -66,4 +68,4 @@ On macOS, install Go, uv, and squashfs-tools as build tools, then run:
 python3 tools/package_local.py
 ```
 
-The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.2-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
+The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.3-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.

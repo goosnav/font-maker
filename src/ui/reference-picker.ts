@@ -1,5 +1,5 @@
 import { allStyles, REFERENCES, type Project } from "../core/model";
-import { glyphCanvas, loadFace } from "../core/fonts";
+import { fontPreviewSvg, glyphCanvas } from "../core/fonts";
 import { $, dialog, esc } from "./dom";
 
 const roles: Record<string, string> = {
@@ -35,8 +35,8 @@ export function mountReferencePicker(select: HTMLSelectElement, project?: Projec
     button.innerHTML = `<span class="reference-name">${esc(choice?.name ?? "Choose font")}</span><span aria-hidden="true">▾</span>`;
     if (choice && !choice.id.startsWith("style:")) {
       try {
-        const family = await loadFace(choice.id, project);
-        if (generation === current) $(".reference-name", button).style.fontFamily = `"${family}"`;
+        const preview = await fontPreviewSvg(choice.id, choice.name, project, 17);
+        if (generation === current) $(".reference-name", button).replaceChildren(preview);
       } catch { button.title = "Reference could not load. Choose again to retry."; }
     }
   };
@@ -44,18 +44,21 @@ export function mountReferencePicker(select: HTMLSelectElement, project?: Projec
   void update();
   button.onclick = () => {
     const d = dialog("Reference font", `<div class="reference-list">${choices.map(c =>
-      `<button type="button" class="reference-choice" data-reference="${esc(c.id)}" aria-label="${esc(c.name + ", " + c.role)}" aria-pressed="${select.value === c.id}"><span class="reference-name">${esc(c.name)}</span><span class="reference-role">${esc(c.role)}</span><span class="reference-example" aria-hidden="true">Aa Bb 0123</span></button>`,
+      `<button type="button" class="reference-choice" data-reference="${esc(c.id)}" aria-label="${esc(c.name + ", " + c.role)}" aria-pressed="${select.value === c.id}"><span class="reference-name">${esc(c.name)}</span><span class="reference-role">${esc(c.role)}</span><span class="reference-example" aria-hidden="true">Loading preview…</span></button>`,
     ).join("")}</div>`);
     d.classList.add("reference-dialog");
     d.querySelectorAll<HTMLButtonElement>("[data-reference]").forEach(choice => {
       const id = choice.dataset.reference!;
       choice.onclick = () => {
+        if (choice.dataset.loaded === "error") { void preview(); return; }
         select.value = id;
         select.dispatchEvent(new Event("change", { bubbles: true }));
         d.close();
         button.focus();
       };
-      void (async () => {
+      const preview = async () => {
+        choice.dataset.loaded = "loading";
+        $(".reference-example", choice).textContent = "Loading preview…";
         try {
           if (id.startsWith("style:") && project) {
             const style = allStyles(project).find(s => s.id === id.slice(6))!;
@@ -69,14 +72,21 @@ export function mountReferencePicker(select: HTMLSelectElement, project?: Projec
               sample.append(image);
             }
           } else {
-            const face = await loadFace(id, project);
-            for (const text of choice.querySelectorAll<HTMLElement>(".reference-name,.reference-example")) text.style.fontFamily = `"${face}"`;
+            const name = choices.find(c => c.id === id)!.name;
+            const [label, specimen] = await Promise.all([
+              fontPreviewSvg(id, name, project),
+              fontPreviewSvg(id, "Aa Bb 0123", project, 24),
+            ]);
+            $(".reference-name", choice).replaceChildren(label);
+            $(".reference-example", choice).replaceChildren(specimen);
           }
           choice.dataset.loaded = "true";
         } catch {
-          $(".reference-example", choice).textContent = "Preview unavailable";
+          choice.dataset.loaded = "error";
+          $(".reference-example", choice).textContent = "Could not load. Click to retry.";
         }
-      })();
+      };
+      void preview();
     });
     d.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
   };

@@ -119,12 +119,37 @@ export async function loadFace(id: string, p?: Project) {
   }
   return faces.get(id)!;
 }
-async function referenceFont(id: string, p: Project) {
+async function referenceFont(id: string, p?: Project) {
   if (!references.has(id)) references.set(id, (async () => {
     const [{ default: fontkit }, data] = await Promise.all([import("@pdf-lib/fontkit"), sourceData(id, p)]);
     return fontkit.create(new Uint8Array(data));
-  })().catch(error => { references.delete(id); throw error; }));
+  })().catch(error => { references.delete(id); fontData.delete(id); throw error; }));
   return references.get(id)!;
+}
+/** Render source outlines directly; CSS font fallback must never impersonate a reference. */
+export async function fontPreviewSvg(id: string, text: string, p?: Project, size = 21) {
+  const font = await referenceFont(id, p);
+  const run = font.layout(text);
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  const height = font.ascent - font.descent;
+  svg.setAttribute("viewBox", `0 ${-font.ascent} ${Math.max(1, run.advanceWidth)} ${height}`);
+  svg.setAttribute("width", String(run.advanceWidth * size / font.unitsPerEm));
+  svg.setAttribute("height", String(height * size / font.unitsPerEm));
+  svg.setAttribute("aria-hidden", "true");
+  svg.dataset.font = id;
+  let x = 0, y = 0;
+  run.glyphs.forEach((glyph, i) => {
+    const position = run.positions[i];
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", glyph.path.toSVG());
+    path.setAttribute("fill", "currentColor");
+    path.setAttribute("transform", `translate(${x + position.xOffset} ${-y - position.yOffset}) scale(1 -1)`);
+    svg.append(path);
+    x += position.xAdvance;
+    y += position.yAdvance;
+  });
+  return svg;
 }
 export function canvas(size: number) {
   const c = document.createElement("canvas");
@@ -155,15 +180,14 @@ export async function glyphCanvas(
   if (g.bitmap) {
     ctx.drawImage(await readImage(g.bitmap), 0, 0, size, size);
   } else if (g.base) {
-    const face = await loadFace(g.base, p);
-    ctx.font = `${resolution}px "${face}"`;
-    ctx.fillStyle = "#000";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(
-      String.fromCodePoint(g.cp),
-      (-ORIGIN_X / EM) * resolution,
-      (TOP / EM) * resolution,
-    );
+    const font = await referenceFont(g.base, p);
+    if (font.hasGlyphForCodePoint(g.cp)) {
+      ctx.save();
+      ctx.translate((-ORIGIN_X / EM) * resolution, (TOP / EM) * resolution);
+      ctx.scale(resolution / font.unitsPerEm, -resolution / font.unitsPerEm);
+      ctx.fill(new Path2D(font.glyphForCodePoint(g.cp).path.toSVG()));
+      ctx.restore();
+    }
   }
   if (g.components)
     for (const part of g.components) {
