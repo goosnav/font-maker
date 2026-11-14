@@ -1,5 +1,6 @@
 import "./style.css";
 import "./touch.css";
+import "./cursors.css";
 import xpLogo from "../assets/goosnav-logo-xp.png";
 import xpLogoIcon from "../assets/goosnav-logo-xp-icon.png";
 import {

@@ -1,0 +1,13 @@
+:root {
+  --xp-arrow: url("../assets/cursors/xp-arrow.png") 1 1, default;
+  --xp-link: url("../assets/cursors/xp-link.png") 11 2, pointer;
+  --xp-text: url("../assets/cursors/xp-text.png") 11 12, text;
+  --xp-crosshair: url("../assets/cursors/xp-crosshair.png") 12 12, crosshair;
+}
+html, body, button, select, summary, label, input { cursor:var(--xp-arrow); }
+.menubar summary, .split details > summary, .advanced summary { cursor:var(--xp-arrow); }
+a[href] { cursor:var(--xp-link); }
+textarea, input:not([type]), input[type=text], input[type=search], input[type=number], [contenteditable=true] { cursor:var(--xp-text); }
+.paint-canvas, .corner-canvas { cursor:var(--xp-crosshair); }
+:disabled { cursor:not-allowed; }
+.busy, .busy * { cursor:progress; }
