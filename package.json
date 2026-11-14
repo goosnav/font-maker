@@ -13,7 +13,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "deploy": "wrangler deploy",
     "prebuild": "npm run assets",
-    "deploy:check": "wrangler deploy --dry-run"
+    "deploy:check": "wrangler deploy --dry-run",
+    "test:production": "playwright test -c playwright.production.config.ts"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "1.1.1",

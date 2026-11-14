@@ -392,6 +392,13 @@ function renderEditor() {
     painter!.project = project();
   }, message => { if (message) status(message); });
   mountReferencePicker($("#editor-reference") as HTMLSelectElement, p);
+  const host = $(".canvas-host");
+  const available = Math.max(192, Math.min(host.clientWidth, host.clientHeight) - 26);
+  const fitted = p.settings.mode === "pixel"
+    ? Math.floor(available / painter.ink.width) * painter.ink.width
+    : available;
+  painter.setZoom(fitted / 768);
+  $("#zoom-label").textContent = Math.round(painter.zoom * 100) + "%";
   painter.size = p.settings.mode === "pixel" ? 1 : 8;
   document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach(
     (b) =>

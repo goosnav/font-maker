@@ -40,7 +40,7 @@ export function editSettings(
       )
       .join(
         "",
-      )}<label><input id="setting-pressure" type="checkbox"> Pen pressure</label>${field("Stroke smoothing", '<input id="setting-smoothing" type="range" min="0" max="0.8" step="0.05">')}</div></details><p class="note">${start ? "Try drawing H. Keep the sample when you start." : "Changes are previewed here. Original artwork is retained."}</p></div><div><div class="sample-host"></div><div id="reference-notice" class="note" role="status"></div><div class="inline" style="margin-top:8px"><button type="button" id="sample-clear">Clear sample</button><button type="button" id="sample-test">Test font</button></div><div id="sample-text" class="font-swatch" style="margin-top:10px" aria-label="Sample font preview">Draw H, then test your font.</div><p id="sample-notice" class="note" role="status"></p></div></div><div class="actions"><button data-cancel>Cancel</button><button class="primary" id="apply-settings">${start ? "Start drawing" : "Apply settings"}</button></div>`,
+      )}<label><input id="setting-pressure" type="checkbox"> Pen pressure</label>${field("Stroke smoothing", '<input id="setting-smoothing" type="range" min="0" max="0.8" step="0.05">')}</div></details><p class="note">${start ? "Try drawing H. Keep the sample when you start." : "Changes are previewed here. Original artwork is retained."}</p></div><div><div class="sample-host"></div><div id="reference-notice" class="note" role="status"></div><div class="inline" style="margin-top:8px"><button type="button" id="sample-clear">Clear sample</button><button type="button" id="sample-test">Test font</button></div><div id="sample-text" class="font-swatch" style="margin-top:10px" aria-label="Sample font preview">Font preview</div><p id="sample-notice" class="note" role="status"></p></div></div><div class="actions"><button data-cancel>Cancel</button><button class="primary" id="apply-settings">${start ? "Start drawing" : "Apply settings"}</button></div>`,
   );
   d.classList.add("wide");
   let sample = structuredClone(project),
@@ -171,6 +171,7 @@ export function editSettings(
       const characters = [cp, ...sample.characters.filter(code => code !== cp)]
         .filter(code => { const g = sample.glyphs[code]; return g?.bitmap || g?.base || g?.components; })
         .slice(0, 24);
+      $("#sample-text", d).dataset.tested = "true";
       $("#sample-text", d).textContent = characters.length === 1 ? String.fromCodePoint(characters[0]).repeat(3) : String.fromCodePoint(...characters);
       $("#sample-text", d).style.fontFamily = `"${face.family}"`;
       $("#sample-notice", d).textContent =

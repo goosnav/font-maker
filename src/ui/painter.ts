@@ -402,7 +402,7 @@ export class Painter {
       c.strokeStyle = s.guideOverlay.color;
       c.fillStyle = s.guideOverlay.color;
       c.lineWidth = 1;
-      c.font = "11px sans-serif";
+      c.font = `${Math.round(10 / this.zoom)}px Tahoma, Arial, sans-serif`;
       for (const [name, value] of [
         ["Ascender", s.ascender],
         ["Cap", s.capHeight],

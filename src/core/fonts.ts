@@ -91,7 +91,7 @@ async function call(
     };
     worker.onerror = (e) => {
       for (const item of pending.values())
-        item.reject(Error(e.message || "The font engine could not start. Reopen Goosnav Font with its launcher, then retry. Your drawing is kept."));
+        item.reject(Error("The font engine could not start. Keep this window open and retry. For the local edition, reopen the launcher first."));
       pending.clear();
       worker?.terminate();
       worker = undefined;
@@ -121,8 +121,8 @@ export async function loadFace(id: string, p?: Project) {
 }
 async function referenceFont(id: string, p: Project) {
   if (!references.has(id)) references.set(id, (async () => {
-    const [{ create }, data] = await Promise.all([import("@pdf-lib/fontkit"), sourceData(id, p)]);
-    return create(new Uint8Array(data));
+    const [{ default: fontkit }, data] = await Promise.all([import("@pdf-lib/fontkit"), sourceData(id, p)]);
+    return fontkit.create(new Uint8Array(data));
   })().catch(error => { references.delete(id); throw error; }));
   return references.get(id)!;
 }
@@ -193,7 +193,7 @@ export async function referenceCanvas(cp: number, p: Project) {
   const ref = p.settings.reference;
   if (ref.startsWith("style:")) {
     const style = allStyles(p).find((s) => s.id === ref.slice(6));
-    if (!style) return canvas(p.settings.resolution * 1.5);
+    if (!style?.glyphs[cp]) throw Error("This style has no drawing for this character yet.");
     return glyphCanvas(
       style.glyphs[cp],
       { ...p, settings: style.settings, glyphs: style.glyphs },
