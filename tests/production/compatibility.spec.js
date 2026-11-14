@@ -21,7 +21,8 @@ test("missing randomUUID supports startup, styles, font imports, paper, scans an
   await page.getByRole("button", { name: "Create style", exact: true }).click();
   await expect(page.locator("#style-select option")).toHaveCount(2);
   await page.locator("#import-font-file").setInputFiles("public/fonts/liberation-sans.ttf");
-  await expect(page.getByRole("radio", { name: "Reference only", exact: true })).toBeChecked();
+  // Font inspection includes the first Pyodide load on a fresh browser.
+  await expect(page.getByRole("radio", { name: "Reference only", exact: true })).toBeChecked({ timeout: 60000 });
   await page.getByRole("button", { name: "Import", exact: true }).click();
   await page.locator('[data-cp="65"]').click();
   await expect(page.locator(".paint-canvas")).toHaveAttribute("data-reference", "ready");
