@@ -29,7 +29,7 @@ export function editSettings(
 ): Promise<Project | undefined> {
   const d = dialog(
     start ? "Font settings" : "Project settings",
-    `<div class="settings-layout"><div class="settings-controls">${field("Family name", `<input id="setting-family" value="${esc(project.name)}" maxlength="100">`)}${field("Drawing mode", '<select id="setting-mode"><option value="pixel">Pixel</option><option value="detailed">Detailed</option></select>')}${field("Pixels per em", '<select id="setting-resolution"></select>')}${field("Reference", `<select id="setting-reference">${referenceOptions(project)}</select>`)}<div class="overlay-row"><label><input id="setting-ref-visible" type="checkbox"> Reference</label><input id="setting-ref-opacity" type="range" min="0" max="1" step="0.01" aria-label="Reference opacity"><input id="setting-ref-color" type="color" aria-label="Reference color"></div><div class="overlay-row"><label><input id="setting-guide-visible" type="checkbox"> Guides</label><input id="setting-guide-opacity" type="range" min="0" max="1" step="0.01" aria-label="Guide opacity"><input id="setting-guide-color" type="color" aria-label="Guide color"></div><label><input id="setting-mono" type="checkbox"> Monospace</label><div class="form-grid">${field("Letter gap", '<input id="setting-spacing" type="number" min="0" max="1024" step="16">')}${field("Space width", '<input id="setting-space" type="number" min="0" max="4096" step="16">')}</div><details class="advanced"><summary>Guidelines and pen</summary><div>${[
+    `<div class="setup-tabs" role="tablist" aria-label="Font setup"><button type="button" role="tab" id="setup-draw-tab" aria-controls="setup-draw" data-setup="draw">Draw</button><button type="button" role="tab" id="setup-settings-tab" aria-controls="setup-settings" data-setup="settings">Settings</button></div><div class="settings-layout"><div class="settings-controls" id="setup-settings">${field("Family name", `<input id="setting-family" value="${esc(project.name)}" maxlength="100">`)}${field("Drawing mode", '<select id="setting-mode"><option value="pixel">Pixel</option><option value="detailed">Detailed</option></select>')}${field("Pixels per em", '<select id="setting-resolution"></select>')}${field("Reference", `<select id="setting-reference">${referenceOptions(project)}</select>`)}<div class="overlay-row"><label><input id="setting-ref-visible" type="checkbox"> Reference</label><input id="setting-ref-opacity" type="range" min="0" max="1" step="0.01" aria-label="Reference opacity"><input id="setting-ref-color" type="color" aria-label="Reference color"></div><div class="overlay-row"><label><input id="setting-guide-visible" type="checkbox"> Guides</label><input id="setting-guide-opacity" type="range" min="0" max="1" step="0.01" aria-label="Guide opacity"><input id="setting-guide-color" type="color" aria-label="Guide color"></div><label><input id="setting-mono" type="checkbox"> Monospace</label><div class="form-grid">${field("Letter gap", '<input id="setting-spacing" type="number" min="0" max="1024" step="16">')}${field("Space width", '<input id="setting-space" type="number" min="0" max="4096" step="16">')}</div><details class="advanced"><summary>Guidelines and pen</summary><div>${[
       ["ascender", "Ascender"],
       ["descender", "Descender"],
       ["capHeight", "Cap height"],
@@ -41,9 +41,28 @@ export function editSettings(
       )
       .join(
         "",
-      )}<label><input id="setting-pressure" type="checkbox"> Pen pressure</label>${field("Stroke smoothing", '<input id="setting-smoothing" type="range" min="0" max="0.8" step="0.05">')}</div></details><p class="note">${start ? "Try drawing H. Keep the sample when you start." : "Changes are previewed here. Original artwork is retained."}</p></div><div><div class="sample-host"></div><div id="reference-notice" class="note" role="status"></div><div class="inline" style="margin-top:8px"><button type="button" id="sample-clear">Clear sample</button><button type="button" id="sample-test">Test font</button></div><div id="sample-text" class="font-swatch" style="margin-top:10px" aria-label="Sample font preview">Font preview</div><p id="sample-notice" class="note" role="status"></p></div></div><div class="actions"><button data-cancel>Cancel</button><button class="primary" id="apply-settings">${start ? "Start drawing" : "Apply settings"}</button></div>`,
+      )}<label><input id="setting-pressure" type="checkbox"> Pen pressure</label>${field("Stroke smoothing", '<input id="setting-smoothing" type="range" min="0" max="0.8" step="0.05">')}</div></details><p class="note">${start ? "Try drawing H. Keep the sample when you start." : "Changes are previewed here. Original artwork is retained."}</p></div><div class="settings-sample" id="setup-draw"><p class="sample-hint">Draw H to test your font.</p><div class="sample-host"></div><div id="reference-notice" class="note" role="status"></div><div class="inline" style="margin-top:8px"><button type="button" id="sample-clear">Clear sample</button><button type="button" id="sample-test">Test font</button></div><div id="sample-text" class="font-swatch" style="margin-top:10px" aria-label="Sample font preview">Font preview</div><p id="sample-notice" class="note" role="status"></p></div></div><div class="actions"><button data-cancel>Cancel</button><button class="primary" id="apply-settings">${start ? "Start drawing" : "Apply settings"}</button></div>`,
   );
-  d.classList.add("wide");
+  d.classList.add("wide", "settings-dialog");
+  const showPane = (pane: string) => {
+    $(".settings-layout", d).dataset.pane = pane;
+    d.querySelectorAll<HTMLButtonElement>("[data-setup]").forEach(button => {
+      const selected = button.dataset.setup === pane;
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
+  };
+  showPane(start ? "draw" : "settings");
+  d.querySelectorAll<HTMLButtonElement>("[data-setup]").forEach(button => {
+    button.onclick = () => showPane(button.dataset.setup!);
+    button.onkeydown = event => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const pane = event.key === "Home" ? "draw" : event.key === "End" ? "settings" : button.dataset.setup === "draw" ? "settings" : "draw";
+      showPane(pane);
+      $(`[data-setup="${pane}"]`, d).focus();
+    };
+  });
   let sample = structuredClone(project),
     painter: Painter,
     accepted: Project | undefined,
@@ -61,7 +80,7 @@ export function editSettings(
       };
       delete sample.glyphs[cp].components;
     }, message => { $("#reference-notice", d).textContent = message; });
-    painter.setZoom(0.4375);
+    painter.fitToHost(440);
   }
   function resolutions() {
     const mode = input("#setting-mode", d).value;

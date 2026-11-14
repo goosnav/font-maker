@@ -15,10 +15,24 @@ export function $(selector: string, root: ParentNode = document) {
 export function input(selector: string, root: ParentNode = document) {
   return $(selector, root) as HTMLInputElement;
 }
+let dialogSerial = 0;
 export function dialog(title: string, html: string) {
   const d = document.createElement("dialog");
   d.className = "dialog";
+  d.setAttribute("aria-label", title);
   d.innerHTML = `<div class="dialog-title"><strong>${esc(title)}</strong><button type="button" data-close aria-label="Close dialog">×</button></div><div class="dialog-body">${html}</div>`;
+  const actions = d.querySelector<HTMLElement>(".dialog-body > .actions, .dialog-body > form > .actions");
+  if (actions) {
+    const form = actions.closest("form");
+    if (form) {
+      form.id ||= `dialog-form-${++dialogSerial}`;
+      actions.querySelectorAll<HTMLButtonElement>("button").forEach(button => {
+        button.setAttribute("form", form.id);
+      });
+    }
+    actions.classList.add("dialog-footer");
+    d.append(actions);
+  }
   document.body.append(d);
   d.querySelector("[data-close]")!.addEventListener("click", () => d.close());
   d.addEventListener("close", () => d.remove());

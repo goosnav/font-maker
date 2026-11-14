@@ -37,6 +37,9 @@ export class Painter {
   private alive = true;
   private moving = false;
   private ready = false;
+  private fitObserver?: ResizeObserver;
+  private fitFrame = 0;
+  private fitted = false;
   constructor(
     private host: HTMLElement,
     public project: Project,
@@ -85,13 +88,42 @@ export class Painter {
   }
   destroy() {
     this.alive = false;
+    this.fitObserver?.disconnect();
+    cancelAnimationFrame(this.fitFrame);
     this.display.remove();
   }
   setZoom(z: number) {
+    this.fitted = false;
+    this.applyZoom(z);
+  }
+  private applyZoom(z: number) {
     this.zoom = Math.max(0.25, Math.min(8, z));
     this.display.style.width = `${768 * this.zoom}px`;
     this.display.style.height = `${768 * this.zoom}px`;
     this.render();
+  }
+  fitToHost(maxSize = Infinity, onFit = (_zoom: number) => {}) {
+    this.fitted = true;
+    this.fitObserver?.disconnect();
+    cancelAnimationFrame(this.fitFrame);
+    const fit = () => {
+      if (!this.alive || !this.fitted || !this.host.clientWidth || !this.host.clientHeight) return;
+      const css = getComputedStyle(this.host);
+      const width = this.host.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight);
+      const height = this.host.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom);
+      const available = Math.max(192, Math.min(width, height, maxSize));
+      const size = this.project.settings.mode === "pixel"
+        ? Math.floor(available / this.ink.width) * this.ink.width : available;
+      this.applyZoom(size / 768);
+      onFit(this.zoom);
+    };
+    // Resize on the next frame so changing the canvas cannot re-enter layout.
+    this.fitObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(this.fitFrame);
+      this.fitFrame = requestAnimationFrame(fit);
+    });
+    this.fitObserver.observe(this.host);
+    fit();
   }
   setTool(tool: Tool) {
     this.tool = tool;

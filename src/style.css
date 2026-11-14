@@ -39,7 +39,7 @@ a {
 .window {
   height: 100%;
   display: grid;
-  grid-template-rows: 30px 22px 32px minmax(0, 1fr) 22px;
+  grid-template-rows:30px auto minmax(0,1fr) 22px;
   border: 0;
   border-top: 0;
   border-radius: 6px 6px 0 0;
@@ -627,10 +627,7 @@ a {
   background:var(--xp-workspace);
   border: 1px solid #7f8c9b;
 }
-.sample-host .paint-canvas {
-  width: 336px !important;
-  height: 336px !important;
-}
+
 .radio-row {
   display: flex;
   gap: 16px;
@@ -850,88 +847,6 @@ summary:focus-visible { outline: 1px dotted #000; outline-offset: -2px; }
     grid-template-columns: 220px minmax(0, 1fr);
   }
 }
-@media (max-width: 640px) {
-  .window {
-    grid-template-rows:auto 22px auto minmax(0, 1fr) 22px;
-  }
-  .toolbar {
-    flex-wrap: wrap;
-  }
-  .titlebar { flex-wrap:wrap; padding:4px 6px; }
-  .titlebar strong { flex:1; }
-  .tabs {
-    order: 3;
-    width: 100%;
-    justify-content: space-between;
-  }
-  .tabs button {
-    flex: 1;
-  }
-  .toolbar .spacer {
-    display: none;
-  }
-  .toolbar .divider {
-    margin: 0 2px;
-  }
-  .editor {
-    grid-template-columns:74px minmax(0, 1fr);
-    overflow: auto;
-    position: relative;
-  }
-  .editor .side {
-    grid-column: 1/-1;
-    max-height: none;
-    overflow: visible;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .editor .canvas-host {
-    min-height: 240px;
-    padding: 12px;
-  }
-  .editor-nav {
-    flex-wrap: wrap;
-    font-size: var(--text);
-  }
-  .filters input[type="search"] {
-    width: 100%;
-  }
-  .filters select {
-    flex: 1;
-  }
-  .glyph-grid {
-    grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
-  }
-  .glyph-cell {
-    height: 78px;
-  }
-  .grid-wrap {
-    padding: 8px;
-  }
-  .dialog-body {
-    padding: 14px;
-  }
-  .settings-layout,
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .sample-host {
-    height: 260px;
-  }
-  .sample-host .paint-canvas {
-    width: 240px !important;
-    height: 240px !important;
-  }
-  .start-actions {
-    flex-direction: column;
-  }
-  .edition {
-    display: none;
-  }
-  .family-select {
-    max-width: 120px;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .progress-track:after {
     animation: none;
@@ -946,26 +861,17 @@ summary:focus-visible { outline: 1px dotted #000; outline-offset: -2px; }
   }
 }
 
-@media (pointer: coarse) {
-  button, .tool, .menubar summary, .split details > summary,
-  input:not([type=checkbox]):not([type=radio]), select { min-height: 44px; }
-  .window { grid-template-rows:auto auto auto minmax(0, 1fr) 23px; }
-  .titlebar { min-height:52px; flex-wrap:wrap; }
-  .toolbar { flex-wrap: wrap; }
-  .tools { grid-template-columns: repeat(2, 44px); }
-  .tool { width: 44px; }
-  .editor { grid-template-columns: 96px minmax(0, 1fr) 184px; }
-  .tool-size input { width: 90px; }
-  .dialog-title button { width: 44px; }
-  .overlay-row input[type=color] { width: 44px; }
-}
-@media (pointer: coarse) and (max-width: 640px) {
-  .editor { grid-template-columns: 96px minmax(0, 1fr); }
-  .tabs { width: 100%; }
-  .toolbar .spacer { display: none; }
-}
 
-@media (max-width:480px) {
-  .reference-choice { grid-template-columns:1fr; }
-  .reference-example { grid-column:1; grid-row:auto; justify-content:flex-start; width:auto; min-height:28px; }
-}
+/* Keep primary dialog actions outside the scrolling form. */
+.dialog[open] { display:flex; flex-direction:column; overflow:hidden; }
+.dialog-body { min-height:0; max-height:none; flex:1; }
+.dialog-footer { flex-shrink:0; margin:0; padding:12px; border:3px solid var(--xp-title-1); border-top:1px solid var(--xp-shadow); background:var(--xp-face); }
+.setup-tabs, .pane-toggle, .inspector-heading { display:none; }
+.settings-sample { min-width:0; }
+.sample-hint { margin:0 0 8px; color:var(--xp-text-muted); }
+
+.commandbar { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:22px 32px; min-width:0; z-index:5; }
+.commandbar .menubar { grid-column:1/-1; }
+.commandbar > .family-bar { padding:3px 6px; border-top:1px solid var(--xp-face-dark); border-bottom:1px solid var(--xp-shadow); background:linear-gradient(#fbfbf9,#f1efe5 60%,#e5e2d3); }
+.style-label { display:none; }
+.dialog:has(.dialog-footer) .dialog-body { border-bottom:0; }
