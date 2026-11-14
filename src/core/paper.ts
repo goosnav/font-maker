@@ -1,3 +1,4 @@
+import { createId } from "./id";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
@@ -28,7 +29,7 @@ export function makeTemplate(p: Project, cps: number[]): Template {
     (cp) => isScalar(cp) && !isSpace(cp),
   );
   return {
-    id: crypto.randomUUID(),
+    id: createId(),
     version: 1,
     characters,
     pages: Array.from({ length: Math.ceil(characters.length / 30) }, (_, i) =>

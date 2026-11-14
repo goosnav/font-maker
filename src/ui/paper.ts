@@ -1,3 +1,4 @@
+import { createId } from "../core/id";
 import {
   type Project,
   type Character,
@@ -429,7 +430,7 @@ export async function importScans(files: File[], p: Project, cb: Callbacks) {
       throw Error("Scan files must be under 80 MB.");
     cb.status(`Reading ${file.name}…`);
     const source: ScanSource = {
-      id: crypto.randomUUID(),
+      id: createId(),
       name: file.name,
       mime: file.type,
       data: toBase64(new Uint8Array(await file.arrayBuffer())),

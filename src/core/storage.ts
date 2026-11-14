@@ -1,3 +1,4 @@
+import { createId } from "./id";
 import { zipSync, unzipSync, strToU8, strFromU8 } from "fflate";
 import { validateProject, REFERENCES, type Project } from "./model";
 import { fromBase64, toBase64 } from "./fonts";
@@ -58,7 +59,7 @@ export function decodeProject(bytes: Uint8Array): Project {
   const p = JSON.parse(strFromU8(files["project.json"]));
   // Version 1 without styles was the early single-style development format.
   if (p.format === "goosnavfont" && p.version === 1 && !p.styleId) {
-    p.styleId = crypto.randomUUID();
+    p.styleId = createId();
     p.styleName = "Regular";
     p.weight = 400;
     p.italic = false;

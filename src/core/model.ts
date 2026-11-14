@@ -1,3 +1,4 @@
+import { createId } from "./id";
 export const EM = 2048;
 export const ORIGIN_X = -512,
   TOP = 2048,
@@ -147,7 +148,7 @@ export function newProject(
   return {
     format: "goosnavfont",
     version: 1,
-    id: crypto.randomUUID(),
+    id: createId(),
     revision: 0,
     name: name.trim() || "Untitled Font",
     created: now,
@@ -159,7 +160,7 @@ export function newProject(
     templates: [],
     scans: [],
     licenses: [],
-    styleId: crypto.randomUUID(),
+    styleId: createId(),
     styleName: "Regular",
     weight: 400,
     italic: false,
@@ -199,7 +200,7 @@ export function activateStyle(p: Project, id: string) {
   delete p.styles[id];
 }
 export function addStyle(p: Project, name: string, duplicate: boolean) {
-  const id = crypto.randomUUID();
+  const id = createId();
   p.styles[id] = {
     id,
     name,

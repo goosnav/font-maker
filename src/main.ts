@@ -1,3 +1,4 @@
+import { createId } from "./core/id";
 import "./style.css";
 import "./touch.css";
 import "./cursors.css";
@@ -801,7 +802,7 @@ async function importFontFile(file: File, newFamily = false) {
   if (file.size > 25 * 1024 * 1024)
     throw Error("Font files must be under 25 MB.");
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const id = "import-" + crypto.randomUUID();
+  const id = "import-" + createId();
   const holder = history
     ? structuredClone(project())
     : newProject("Imported Font", []);
