@@ -34,11 +34,13 @@ test("paint, create a style referencing Regular, save and reopen the family", as
   // Delete the property because the application uses capability detection.
   await page.evaluate(() => delete window.showSaveFilePicker);
   const event = page.waitForEvent("download");
-  await page.locator(".split summary").click();
+  await page.locator(".save-menu summary").click();
   await page.locator('.split [data-command="save"]').click();
   const download = await event;
   const path = await download.path();
   expect(download.suggestedFilename()).toBe("Family Test.goosnavfont");
+  // The download starts before recovery finishes; wait until Open is usable.
+  await expect(page.locator(".busy")).toHaveCount(0);
   await page.locator("#open-project-file").setInputFiles(path);
   await expect(page.locator("#style-select option")).toHaveCount(2);
   await expect(page.locator('[data-cp="65"]')).toHaveAttribute(

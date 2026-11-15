@@ -30,6 +30,12 @@ export const HELP = [
     label: "Add style",
   },
   {
+    title: "Open a project or font",
+    text: "Open offers Open project for .goosnavfont files and Open font for TTF or OTF. Open font starts the New font setup: choose Reference font for blank characters with a tracing background, or Editable font to import the shapes. Continue to choose pixel or detailed settings. Cancel keeps your current project.",
+    action: "open-font",
+    label: "Open font",
+  },
+  {
     title: "Import and edit an existing font",
     text: "Import font accepts TTF and OTF. Add it as a reference, use it to create an editable style, or start a new font project. Choose Pixel settings to downsample it. The original file stays inside your project. Use fonts you have permission to modify and distribute; imported notices are retained.",
     action: "import-font",

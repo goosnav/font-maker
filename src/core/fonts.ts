@@ -236,14 +236,17 @@ export async function referenceCanvas(cp: number, p: Project) {
     Math.max(Math.min(p.settings.resolution, 1024), 128),
   );
 }
+export type FontProgress = { completed: number; total: number };
+export type FontProgressCallback = (message: string, progress?: FontProgress) => void;
 export async function seedProject(
   p: Project,
   source: string,
-  onProgress = (s: string) => {},
+  onProgress: FontProgressCallback = () => {},
 ) {
   const info = await inspectFont(source, p);
   const entries = p.characters.filter((cp) => info.metrics[cp] !== undefined);
   let n = 0;
+  onProgress(`Preparing 0 / ${entries.length} characters…`, {completed:0,total:entries.length});
   if (info.metrics[32] !== undefined) {
     const step = EM / p.settings.resolution;
     p.settings.space =
@@ -264,12 +267,14 @@ export async function seedProject(
       base: source,
     };
     if (p.settings.mode === "pixel" && !isSpace(cp)) {
-      g.bitmap = (await glyphCanvas(g, p)).toDataURL();
+      const image = await glyphCanvas(g, p);
+      g.bitmap = image.toDataURL();
+      image.width = image.height = 1;
       g.original = g.bitmap;
     }
     p.glyphs[cp] = g;
-    if (++n % 30 === 0) {
-      onProgress(`Preparing ${n} / ${entries.length} characters…`);
+    if (++n % 30 === 0 || n === entries.length) {
+      onProgress(`Preparing ${n} / ${entries.length} characters…`, {completed:n,total:entries.length});
       await new Promise((r) => setTimeout(r, 0));
     }
   }
@@ -286,7 +291,7 @@ export async function seedProject(
 export async function convertResolution(
   p: Project,
   settings: Project["settings"],
-  progress = (s: string) => {},
+  progress: FontProgressCallback = () => {},
 ) {
   const next = structuredClone(p);
   next.settings = settings;
@@ -296,8 +301,9 @@ export async function convertResolution(
   )
     return next;
   let i = 0;
-  for (const g of Object.values(next.glyphs)) {
-    if (!g.bitmap && (!g.base || settings.mode === "detailed")) continue;
+  const glyphs = Object.values(next.glyphs).filter(g => g.bitmap || (g.base && settings.mode !== "detailed"));
+  progress(`Converting 0 / ${glyphs.length} characters…`, {completed:0,total:glyphs.length});
+  for (const g of glyphs) {
     const old = await glyphCanvas(g, p);
     const target = canvas(settings.resolution * 1.5);
     const ctx = target.getContext("2d")!;
@@ -312,8 +318,8 @@ export async function convertResolution(
       g.bitmap=snapped.toDataURL();
       snapped.width=snapped.height=1;
     }
-    if (++i % 20 === 0) {
-      progress(`Converting ${i} characters…`);
+    if (++i % 20 === 0 || i === glyphs.length) {
+      progress(`Converting ${i} / ${glyphs.length} characters…`, {completed:i,total:glyphs.length});
       await new Promise((r) => setTimeout(r, 0));
     }
   }

@@ -24,6 +24,7 @@ import {
   type Project,
   type Character,
   type Glyph,
+  type FontSource,
 } from "./core/model";
 import {
   buildFont,
@@ -35,6 +36,8 @@ import {
   setFontNotice,
   toBase64,
   readImage,
+  type FontInfo,
+  type FontProgress,
 } from "./core/fonts";
 import {
   encodeProject,
@@ -50,6 +53,7 @@ import {
 import { Painter, type Tool } from "./ui/painter";
 import { editSettings, referenceOptions } from "./ui/settings";
 import { icon } from "./ui/icons";
+import { progressMarkup, updateProgress } from "./ui/progress";
 import { mountReferencePicker } from "./ui/reference-picker";
 import { HELP } from "./ui/help";
 import { $, input, esc, dialog, field, confirmAction } from "./ui/dom";
@@ -76,12 +80,27 @@ let bookPanelOpen = false;
 let quickPreview: ReturnType<typeof mountLivePreview> | undefined;
 let importAsNewProject = false;
 const root = $("#app");
-root.innerHTML = `<main class="window"><header class="titlebar"><img src="${xpLogoIcon}" alt=""><strong id="title">Goosnav Font</strong><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></header><div class="commandbar"><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="import-font">Import font…</button><button data-command="settings">Project settings…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">New</button><button data-command="open" title="Open project">Open</button><div class="split"><details class="save-menu"><summary role="button" aria-label="Save" title="Save options (⌘/Ctrl+S saves project)">${icon("save")}<span>Save</span><span aria-hidden="true">▾</span></summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">${icon("undo")}</button><button data-command="redo" title="Redo" aria-label="Redo">${icon("redo")}</button><span class="spacer"></span></div><div class="family-bar" hidden><span class="style-label">Style</span><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span><span class="edition">On this device</span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
+root.innerHTML = `<main class="window"><header class="titlebar"><img src="${xpLogoIcon}" alt=""><strong id="title">Goosnav Font</strong><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></header><div class="commandbar"><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="open-font">Open font…</button><button data-command="import-font">Import font…</button><button data-command="settings">Project settings…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">${icon("new")}<span>New</span></button><div class="split"><details class="open-menu toolbar-menu"><summary role="button" aria-label="Open" title="Open options">${icon("open")}<span>Open</span><span aria-hidden="true">▾</span></summary><div class="menu-pop"><button data-command="open">Open project…</button><button data-command="open-font">Open font…</button></div></details></div><div class="split"><details class="save-menu toolbar-menu"><summary role="button" aria-label="Save" title="Save options (⌘/Ctrl+S saves project)">${icon("save")}<span>Save</span><span aria-hidden="true">▾</span></summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">${icon("undo")}</button><button data-command="redo" title="Redo" aria-label="Redo">${icon("redo")}</button><span class="spacer"></span></div><div class="family-bar" hidden><span class="style-label">Style</span><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span><span class="edition">On this device</span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
 const workspace = $("#workspace");
-function status(text: string) {
+document.addEventListener("toggle", event => {
+  const menu = event.target;
+  if (!(menu instanceof HTMLDetailsElement) || !menu.open || !menu.matches(".menu,.toolbar-menu")) return;
+  document.querySelectorAll<HTMLDetailsElement>(".menu[open],.toolbar-menu[open]").forEach(other => {
+    if (other !== menu) other.open = false;
+  });
+}, true);
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape" || document.querySelector("dialog[open]")) return;
+  const menu = document.querySelector<HTMLDetailsElement>(".menu[open],.toolbar-menu[open]");
+  if (menu) { menu.open = false; menu.querySelector("summary")?.focus(); event.preventDefault(); }
+});
+function status(text: string, progress?: FontProgress) {
   $("#status").textContent = text;
   const live = document.querySelector(".busy-message");
-  if (live) live.textContent = text;
+  if (live) {
+    live.textContent = text;
+    updateProgress($(".busy .progress-track"), progress);
+  }
 }
 setFontNotice(status);
 function error(e: unknown) {
@@ -101,7 +120,7 @@ async function busy<T>(
     const el = document.createElement("div");
     el.className = "busy";
     el.innerHTML =
-      '<div class="busy-box"><div class="busy-message" role="status"></div><div class="progress-track"></div></div>';
+      `<div class="busy-box"><div class="busy-message" role="status"></div>${progressMarkup("Current operation")}</div>`;
     document.body.append(el);
   }
   status(message);
@@ -713,7 +732,7 @@ function renderHelp() {
   input("#help-search").oninput = update;
   update();
 }
-async function newFont() {
+async function newFont(opened?: { source: FontSource; info: FontInfo }) {
   if (
     history &&
     history.project.revision !== savedRevision &&
@@ -725,26 +744,43 @@ async function newFont() {
   )
     return;
   const packs = [...new Set(catalog.map((c) => c.pack))];
+  const referenceProject = opened ? newProject(opened.source.name + " Custom", []) : undefined;
+  if (referenceProject) referenceProject.fonts.push(opened!.source);
   const d = dialog(
     "New font",
-    `<form>${field("Family name", '<input id="new-name" value="My Font" maxlength="100" required>')}<div class="radio-row"><label><input type="radio" name="start" value="blank" checked> Blank</label><label><input type="radio" name="start" value="seed"> Start from font</label></div>${field("Reference", `<select id="new-reference">${REFERENCES.map((r) => `<option value="${r.id}">${r.name}</option>`).join("")}</select>`)}<fieldset><legend>Character packs</legend><div class="pack-list">${packs.map((k) => `<label><input type="checkbox" name="pack" value="${k}" ${catalog.some((c) => c.pack === k && c.paper) ? "checked" : ""}> ${k.charAt(0).toUpperCase() + k.slice(1).replaceAll("-", " ")}</label>`).join("")}</div></fieldset><div id="new-error" role="alert"></div><div class="actions"><button type="submit" class="primary">Continue</button></div></form>`,
+    `<form>${field("Family name", `<input id="new-name" value="${esc(referenceProject?.name ?? "My Font")}" maxlength="100" required>`)}<div class="radio-row"><label><input type="radio" name="start" value="blank" ${opened ? "" : "checked"}> ${opened ? "Reference font" : "Blank"}</label><label><input type="radio" name="start" value="seed" ${opened ? "checked" : ""}> ${opened ? "Editable font" : "Start from font"}</label></div>${opened ? '<p class="note">Reference leaves the characters blank. Editable starts with the font’s existing characters.</p>' : ""}${field("Reference", `<select id="new-reference">${opened ? `<option value="${esc(opened.source.id)}" selected>${esc(opened.source.name)}</option>` : ""}${REFERENCES.map((r) => `<option value="${r.id}">${r.name}</option>`).join("")}</select>`)}<fieldset><legend>Character packs</legend>${opened ? `<label><input type="checkbox" id="new-source-characters" checked> All characters in this font (${Object.keys(opened.info.metrics).length})</label>` : ""}<div class="pack-list">${packs.map((k) => `<label><input type="checkbox" name="pack" value="${k}" ${!opened && catalog.some((c) => c.pack === k && c.paper) ? "checked" : ""}> ${k.charAt(0).toUpperCase() + k.slice(1).replaceAll("-", " ")}</label>`).join("")}</div></fieldset><div id="new-error" role="alert"></div><div class="actions"><button type="submit" class="primary">Continue</button></div></form>`,
   );
   d.classList.add("new-project-dialog");
-  mountReferencePicker($("#new-reference", d) as HTMLSelectElement);
+  mountReferencePicker($("#new-reference", d) as HTMLSelectElement, referenceProject);
   d.querySelector("form")!.onsubmit = async (e) => {
     e.preventDefault();
     const selected = [
       ...d.querySelectorAll<HTMLInputElement>("[name=pack]:checked"),
     ].map((x) => x.value);
-    if (!selected.length) {
+    const includeSource = opened && input("#new-source-characters", d).checked;
+    if (!selected.length && !includeSource) {
       $("#new-error", d).textContent = "Select at least one character pack.";
       return;
     }
     const p = newProject(
       input("#new-name", d).value,
-      catalog.filter((c) => selected.includes(c.pack)).map((c) => c.cp),
+      [...new Set([...catalog.filter((c) => selected.includes(c.pack)).map((c) => c.cp), ...(includeSource ? Object.keys(opened!.info.metrics).map(Number) : [])])].sort((a,b)=>a-b),
     );
     p.settings.reference = input("#new-reference", d).value;
+    if (opened) {
+      p.fonts.push(opened.source);
+      p.settings.mode = "detailed";
+      p.settings.resolution = 2048;
+      p.styleName = opened.info.style || "Regular";
+      p.weight = opened.info.weight;
+      p.italic = opened.info.italic;
+      if (p.settings.reference === opened.source.id) {
+        p.settings.ascender = opened.info.ascender;
+        p.settings.descender = opened.info.descender;
+        p.settings.capHeight = opened.info.capHeight;
+        p.settings.xHeight = opened.info.xHeight;
+      }
+    }
     const seed =
       d.querySelector<HTMLInputElement>("[name=start]:checked")!.value ===
       "seed";
@@ -837,6 +873,7 @@ async function importFontFile(file: File, newFamily = false) {
   source.copyright = info.copyright;
   source.license = info.license;
   await loadFace(id, holder);
+  if (newFamily) { await newFont({ source, info }); return; }
   const d = dialog(
     "Import font",
     `<div class="font-swatch" style="font-family:'gfn-${id}'">Aa Bb Cc 0123</div><p><strong>${esc(source.name)}</strong> · ${Object.keys(info.metrics).length} characters</p><form><label><input type="radio" name="import-use" value="reference" ${history && !newFamily ? "checked" : ""} ${history ? "" : "disabled"}> Reference only</label><label><input type="radio" name="import-use" value="style" ${history ? "" : "disabled"}> Editable style in this project</label><label><input type="radio" name="import-use" value="project" ${!history || newFamily ? "checked" : ""}> New editable font project</label>${field("Family name", `<input id="import-family" value="${esc(source.name + " Custom")}" maxlength="100" required>`)}${field("Style name", `<input id="import-style" value="${esc(info.style || "Regular")}" maxlength="60">`)}<p class="note">Use a font you have permission to modify and distribute. Its original file and notices stay in the project.</p><div class="actions"><button type="submit" class="primary">Import</button></div></form>`,
@@ -1008,6 +1045,10 @@ async function command(cmd: string) {
         break;
       case "open":
         input("#open-project-file").click();
+        break;
+      case "open-font":
+        importAsNewProject = true;
+        input("#import-font-file").click();
         break;
       case "import-font":
         importAsNewProject = false;

@@ -6,6 +6,8 @@ import {
 } from "../core/model";
 import { convertResolution, buildFont, seedProject } from "../core/fonts";
 import { Painter } from "./painter";
+import { progressMarkup, updateProgress } from "./progress";
+import type { FontProgress } from "../core/fonts";
 import { mountReferencePicker } from "./reference-picker";
 import { dialog, esc, $, input, field } from "./dom";
 export function referenceOptions(p: Project, selected = p.settings.reference) {
@@ -45,6 +47,18 @@ export function editSettings(
       )}<label><input id="setting-pressure" type="checkbox"> Pen pressure</label>${field("Stroke smoothing", '<input id="setting-smoothing" type="range" min="0" max="0.8" step="0.05">')}</div></details><p class="note">${start ? "Try drawing H. Keep the sample when you start." : "Changes are previewed here. Original artwork is retained."}</p></div><div class="settings-sample" id="setup-draw"><p class="sample-hint">Draw H to test your font.</p><div class="sample-host"></div><div id="reference-notice" class="note" role="status"></div><div class="inline" style="margin-top:8px"><button type="button" id="sample-clear">Clear sample</button><button type="button" id="sample-test">Test font</button></div><div id="sample-text" class="font-swatch" style="margin-top:10px" aria-label="Sample font preview">Font preview</div><p id="sample-notice" class="note" role="status"></p></div></div><div class="actions"><button data-cancel>Cancel</button><button class="primary" id="apply-settings">${start ? "Start drawing" : "Apply settings"}</button></div>`,
   );
   d.classList.add("wide", "settings-dialog");
+  const progressPanel = document.createElement("div");
+  progressPanel.className = "settings-progress";
+  progressPanel.hidden = true;
+  progressPanel.innerHTML = `<div role="status"></div>${progressMarkup("Font conversion")}`;
+  d.insertBefore(progressPanel, d.querySelector(".dialog-footer"));
+  const reportProgress = (message: string, progress?: FontProgress) => {
+    if (!d.open) return;
+    progressPanel.hidden = false;
+    $("[role=status]", progressPanel).textContent = message;
+    $(".progress-track", progressPanel).hidden = false;
+    updateProgress($(".progress-track", progressPanel), progress);
+  };
   const showPane = (pane: string) => {
     $(".settings-layout", d).dataset.pane = pane;
     d.querySelectorAll<HTMLButtonElement>("[data-setup]").forEach(button => {
@@ -225,16 +239,13 @@ export function editSettings(
     $(".sample-host", d).inert = true;
     try {
       const settings = read();
-      const candidate = await convertResolution(project, settings, (s) => {
-        $("#sample-notice", d).textContent = s;
-      });
+      reportProgress("Applying settings…");
+      const candidate = await convertResolution(project, settings, reportProgress);
       candidate.name =
         input("#setting-family", d).value.trim() || "Untitled Font";
       if (seedSource) {
-        $("#sample-notice", d).textContent = "Preparing starting font…";
-        await seedProject(candidate, seedSource, message => {
-          if (d.open) $("#sample-notice", d).textContent = message;
-        });
+        reportProgress("Preparing starting font…");
+        await seedProject(candidate, seedSource, reportProgress);
       }
       if (!d.open) return;
       if (sample.glyphs[cp]?.bitmap) {
@@ -244,6 +255,9 @@ export function editSettings(
       accepted = candidate;
       d.close();
     } catch (e) {
+      progressPanel.hidden = false;
+      $(".progress-track", progressPanel).hidden = true;
+      $("[role=status]", progressPanel).textContent = e instanceof Error ? e.message : String(e);
       $("#sample-notice", d).textContent = String(e);
       button.disabled = false;
       controls.forEach(control => control.disabled = false);

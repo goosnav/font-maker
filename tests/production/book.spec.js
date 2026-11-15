@@ -101,6 +101,12 @@ for (const [name, width, height] of [["iPad", 834, 1194], ["phone", 390, 844], [
     const page = await context.newPage();
     try {
       await openBook(page);
+      for (const control of await page.locator('.toolbar > button:visible, .toolbar summary').all()) {
+        const bounds = await control.boundingBox();
+        expect(bounds.x).toBeGreaterThanOrEqual(0);
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+        expect(bounds.height).toBeGreaterThanOrEqual(44);
+      }
       if (width <= 700) {
         await expect(page.locator(".book-sidebar")).toBeHidden();
         await page.locator("#toggle-book-panel").tap();

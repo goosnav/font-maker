@@ -4,7 +4,7 @@ Draw a typeface on paper or on screen. Create Regular, Bold, Italic, and custom 
 
 The local and Cloudflare editions share one browser editor and process fonts and scans on the device. Save `.goosnavfont` files for durable storage and transferring projects. The in-app Help tab covers the workflow.
 
-The app opens to the character book with your recovered session, or a default project. The initial popup offers New font, Open project, and Import font; close it to keep drawing. The left panel holds the font name, drawing settings, live text preview, import, export, and Clear all with confirmation and undo. On phones, open Project & preview. Use the style selector above the book to switch variants. Click Save for project and font export options. The pixel-grid Goosnav logo is available as PNG and SVG in `assets/`.
+The app opens to the character book with your recovered session, or a default project. The initial popup offers New font, Open project, and Import font; close it to keep drawing. The left panel holds the font name, drawing settings, live text preview, import, export, and Clear all with confirmation and undo. On phones, open Project & preview. Use the style selector above the book to switch variants. Click Save for project and font export options. Open offers projects or TTF/OTF fonts; opening a font starts setup with reference-only or editable characters. Conversion shows a character count and a filling progress bar. The pixel-grid Goosnav logo is available as PNG and SVG in `assets/`.
 
 This is a development preview. Cross-built launchers do not establish native platform support. See the downloadable README for verification limits.
 
@@ -74,4 +74,4 @@ On macOS, install Go, uv, and squashfs-tools as build tools, then run:
 python3 tools/package_local.py
 ```
 
-The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.7-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
+The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.8-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.

@@ -98,8 +98,8 @@ for (const [name, width, height] of screens) {
         expect(await inkFingerprint(canvas)).toEqual(ink);
         await page.screenshot({ path: info.outputPath("rotated.png"), scale: "css" });
       }
-      await page.locator('.split summary').tap();
-      await inViewport(page.locator('.split .menu-pop'), page);
+      await page.locator('.save-menu summary').tap();
+      await inViewport(page.locator('.save-menu .menu-pop'), page);
       await page.locator('.split [data-command="export"]').tap();
       await page.locator("#export-format").selectOption("ttf");
       await inViewport(page.getByRole("button", { name: "Export", exact: true }), page);

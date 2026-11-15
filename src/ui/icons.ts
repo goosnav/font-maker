@@ -1,5 +1,7 @@
 // Original 16-pixel toolbar artwork, drawn on an integer grid.
 const paths: Record<string, string> = {
+  new: '<path fill="#747474" d="M2 1h8l3 3v11H2z"/><path fill="#fff" d="M3 2h6v3h3v9H3z"/><path fill="#d8e5f3" d="M10 2v2h2z"/><path fill="#276925" d="M7 6h2v2h2v2H9v2H7v-2H5V8h2z"/>',
+  open: '<path fill="#8b692b" d="M1 3h6l2 2h5v3h2l-3 6H0V3z"/><path fill="#edbd57" d="M2 4h4l2 2h5v2H4l-2 4z"/><path fill="#ffe399" d="M4 9h10l-2 4H2z"/><path fill="#fff0ba" d="M4 9h10v1H4z"/>',
   undo: '<path fill="#244b20" d="M6 2v3h4v1h2v1h1v2h1v4h-3v-3h-1V9H6v3L1 7z"/><path fill="#5c9b43" d="M5 4v2h5v1h2v2h1v3h-1V9h-2V8H5v2L2 7z"/>',
   pencil: '<path fill="#202020" d="M11 1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-1v1H9v1H8v1H7v1H6v1H2v-4h1V9h1V8h1V7h1V6h1V5h1V4h1V3h1V2h1z"/><path fill="#f4cb50" d="M10 4h1v1h1v1h-1v1h-1v1H9v1H8v1H7v1H6v1H4v-2h1V9h1V8h1V7h1V6h1V5h1z"/><path fill="#e88870" d="M12 2h2v2h-1V3h-1z"/><path fill="#fff3cd" d="M3 11h1v1h1v1H3z"/>',
   brush: '<path fill="#202020" d="M12 1h3v3h-1v2h-1v2h-1v2h-1v3H9v1H7v1H2v-1h1v-3h1V9h2V8h2V6h1V4h1V2h2z"/><path fill="#b47a38" d="M12 2h2v2h-1v2h-1v2h-2V6h1V4h1z"/><path fill="#eee" d="M8 8h3v2H7V9h1z"/><path fill="#535353" d="M5 10h2v3H4v-2h1z"/>',

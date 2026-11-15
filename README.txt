@@ -23,6 +23,8 @@ In this preview: the character book has project controls and a live text preview
 on the left. On phones, open Project & preview. Click Save for project or font
 export options. Drawing sheets have readable labels and a worked example.
 Detailed mode offers 4,096 pixels per em and smooth curve exports.
+Open offers projects or fonts. Font setup lets you choose reference-only or
+editable characters. Conversion progress fills as characters are completed.
 
 User data and logs:
   macOS: ~/Library/Application Support/Goosnav Font/

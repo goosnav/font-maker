@@ -687,13 +687,19 @@ a {
     transparent 8px,
     transparent 10px
   );
-  animation: progress 1.4s infinite alternate;
+  animation: progress 1.6s linear infinite;
 }
 @keyframes progress {
-  to {
-    transform: translateX(230%);
-  }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(333.334%); }
 }
+.progress-track[data-determinate]:after {
+  width:var(--progress,0%); animation:none; transform:none;
+}
+.settings-progress { flex-shrink:0; margin:0 3px; padding:8px 12px; background:var(--xp-face); }
+.settings-progress .progress-track { margin-top:6px; }
+.settings-progress [role=status] { font-size:12px; }
+
 .scan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));

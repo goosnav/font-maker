@@ -49,7 +49,7 @@ test("ultra-fine drawing retains resolution, zoom detail and loadable TTF/OTF cu
   ).toBe("auto");
   await page.evaluate(() => delete window.showSaveFilePicker);
   const saved = page.waitForEvent("download");
-  await page.locator(".split summary").click();
+  await page.locator(".save-menu summary").click();
   await page.locator('.split [data-command="save"]').click();
   const archive = unzipSync(
     new Uint8Array(await readFile(await (await saved).path())),
@@ -60,7 +60,7 @@ test("ultra-fine drawing retains resolution, zoom detail and loadable TTF/OTF cu
   // Portable archives store bitmap data as paths; inspect the actual PNG dimensions.
   const png = Buffer.from(archive[imageName.slice(1)]);
   expect(png.readUInt32BE(16)).toBe(6144);
-  await page.locator(".split summary").click();
+  await page.locator(".save-menu summary").click();
   await page.locator('.split [data-command="export"]').click();
   await page.locator("#export-format").selectOption("both");
   const download = page.waitForEvent("download");
