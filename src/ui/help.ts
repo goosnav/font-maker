@@ -1,5 +1,11 @@
 export const HELP = [
   {
+    title: "Project panel and live preview",
+    text: "Use the left panel to rename your font, adjust drawing settings, import, or export. Type in Quick preview to see the current style; it updates after each edit. Boxes mark characters you have not drawn. Full preview adds sizes and spacing controls. On a phone, open Project & preview above the book. Clear all asks first and can be undone.",
+    action: "characters",
+    label: "Character book",
+  },
+  {
     title: "Start a font",
     text: "New opens a blank font or starts with an open reference font. Try your brush and resolution on H, then choose Start drawing. Every project can contain Regular, Bold, Italic, and custom styles.",
     action: "new",
@@ -13,7 +19,7 @@ export const HELP = [
   },
   {
     title: "Pixel and detailed fonts",
-    text: "Pixel defaults to 16 pixels per em and hard square edges. Detailed uses a finer canvas. Settings previews resolution changes and preserves original artwork. Pixel shapes remain square, but other applications may antialias them.",
+    text: "Pixel defaults to 16 pixels per em and hard square edges. Detailed defaults to 2,048 pixels per em; choose 4,096 for ultra-fine drawing. This uses more memory; 2,048 suits most lettering. Zoom redraws at screen resolution. Detailed exports fit smooth vector curves; pixel exports keep square corners. Imported outlines remain vector shapes until painted. Increasing resolution cannot invent detail in an older drawing. Settings previews resolution changes and preserves original artwork. Pixel shapes remain square, but other applications may antialias them.",
     action: "settings",
     label: "Drawing settings",
   },
@@ -37,7 +43,7 @@ export const HELP = [
   },
   {
     title: "Print drawing sheets",
-    text: "Paper creates 8.5 × 11 inch sheets with 30 drawing cells. Print at Actual size / 100%. Keep registration marks visible. Draw in dark ink inside the cells, with letters resting on the baseline. Print all standard packs, selected packs, or unfinished characters.",
+    text: "Paper creates 8.5 × 11 inch sheets with 30 drawing cells. Print at Actual size / 100%. Keep registration marks visible. Draw in dark ink inside the cells, with letters resting on the solid baseline. The example shows capitals, lowercase height, and descenders. Each box has a printed character and its name underneath. Print all standard packs, selected packs, or unfinished characters.",
     action: "paper",
     label: "Paper sheets",
   },
@@ -61,7 +67,7 @@ export const HELP = [
   },
   {
     title: "Save project or export font",
-    text: "Save project creates a .goosnavfont file containing every style, drawings, reference imports, and scan originals. Export font creates installable TTF or OTF files for the current style or whole family. Export does not replace saving the project.",
+    text: "Click Save to choose Save project, Save project as, or Export font. Save project creates a .goosnavfont file containing every style, drawings, reference imports, and scan originals. Export font creates installable TTF or OTF files for the current style or whole family. Export does not replace saving the project.",
     action: "export",
     label: "Export font",
   },

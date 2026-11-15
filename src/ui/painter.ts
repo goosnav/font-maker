@@ -30,6 +30,8 @@ export class Painter {
   private last = [0, 0];
   private before?: ImageData;
   private ref?: HTMLCanvasElement;
+  private tint?: HTMLCanvasElement;
+  private tintColor = "";
   private selection?: { x: number; y: number; w: number; h: number };
   private clipboard?: HTMLCanvasElement;
   private pan?: { x: number; y: number; l: number; t: number };
@@ -47,6 +49,7 @@ export class Painter {
     private commit: (bitmap: string) => void,
     private referenceStatus: (message: string) => void = () => {},
   ) {
+    this.size = project.settings.mode === "pixel" ? 1 : Math.max(8, Math.round(project.settings.resolution / 32));
     this.ink = canvas(project.settings.resolution * 1.5);
     this.context = this.ink.getContext("2d", { willReadFrequently: true })!;
     this.display = canvas(768);
@@ -70,13 +73,15 @@ export class Painter {
     this.render();
     try {
       const g = await glyphCanvas(this.project.glyphs[this.cp], this.project);
-      if (!this.alive) return;
+      if (!this.alive) { g.width = g.height = 1; return; }
+      this.ink.width = this.ink.height = 1;
       this.ink = g;
       this.context = g.getContext("2d", { willReadFrequently: true })!;
       this.ready = true;
       this.render();
       this.referenceStatus("Loading reference…");
       this.ref = await referenceCanvas(this.cp, this.project);
+      if (!this.alive) { this.ref.width = this.ref.height = 1; return; }
       if (this.alive) {
         this.display.dataset.reference = "ready";
         this.referenceStatus("");
@@ -91,6 +96,8 @@ export class Painter {
     this.fitObserver?.disconnect();
     cancelAnimationFrame(this.fitFrame);
     this.display.remove();
+    this.before = undefined;
+    for (const c of [this.ink, this.display, this.ref, this.tint]) if (c) c.width = c.height = 1;
   }
   setZoom(z: number) {
     this.fitted = false;
@@ -173,6 +180,15 @@ export class Painter {
     ctx.globalCompositeOperation = "source-over";
   }
   private stroke(a: number[], b: number[], pressure: number) {
+    if (this.project.settings.mode === "detailed") {
+      const ctx=this.context;
+      ctx.globalCompositeOperation=this.tool==="eraser"?"destination-out":"source-over";
+      ctx.strokeStyle="#000";ctx.lineCap=ctx.lineJoin="round";
+      ctx.lineWidth=Math.max(1,this.size*(this.project.settings.pressure?pressure:1));
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+      ctx.globalCompositeOperation="source-over";
+      return;
+    }
     const d = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])),
       steps = Math.max(1, Math.ceil(d * 2));
     for (let i = 0; i <= steps; i++)
@@ -283,7 +299,10 @@ export class Painter {
           rx = Math.abs(p[0] - x) / 2,
           ry = Math.abs(p[1] - y) / 2,
           steps = Math.max(16, Math.ceil(Math.PI * Math.max(rx, ry) * 4));
-        for (let i = 0; i < steps; i++)
+        if (this.project.settings.mode === "detailed") {
+          this.context.strokeStyle="#000"; this.context.lineWidth=this.size;
+          this.context.beginPath(); this.context.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); this.context.stroke();
+        } else for (let i = 0; i < steps; i++)
           this.stamp(
             cx + rx * Math.cos((i / steps) * Math.PI * 2),
             cy + ry * Math.sin((i / steps) * Math.PI * 2),
@@ -343,6 +362,7 @@ export class Painter {
       this.context.putImageData(this.before, 0, 0);
     this.active = false;
     this.pan = undefined;
+    this.before = undefined;
     this.render();
   };
   private keydown = (e: KeyboardEvent) => {
@@ -411,6 +431,10 @@ export class Painter {
     this.render();
   }
   render() {
+    const detailed=this.project.settings.mode==="detailed";
+    const size=detailed?Math.min(4096,Math.max(384,Math.ceil(768*this.zoom*(window.devicePixelRatio||1)))):768;
+    if(this.display.width!==size) this.display.width=this.display.height=size;
+    this.display.style.imageRendering=detailed?"auto":"pixelated";
     const c = this.display.getContext("2d")!,
       w = this.display.width,
       s = this.project.settings,
@@ -419,14 +443,16 @@ export class Painter {
     c.fillStyle = "#fff";
     c.fillRect(0, 0, w, w);
     if (this.ref && s.referenceOverlay.visible) {
-      const temp = canvas(this.ref.width),
-        t = temp.getContext("2d")!;
-      t.drawImage(this.ref, 0, 0);
-      t.globalCompositeOperation = "source-in";
-      t.fillStyle = s.referenceOverlay.color;
-      t.fillRect(0, 0, temp.width, temp.height);
+      if(!this.tint || this.tintColor!==s.referenceOverlay.color) {
+        if(this.tint)this.tint.width=this.tint.height=1;
+        this.tint=canvas(this.ref.width);
+        const t=this.tint.getContext("2d")!;
+        t.drawImage(this.ref,0,0);t.globalCompositeOperation="source-in";
+        t.fillStyle=s.referenceOverlay.color;t.fillRect(0,0,this.tint.width,this.tint.height);
+        this.tintColor=s.referenceOverlay.color;
+      }
       c.globalAlpha = s.referenceOverlay.opacity;
-      c.drawImage(temp, 0, 0, w, w);
+      c.drawImage(this.tint, 0, 0, w, w);
       c.globalAlpha = 1;
     }
     if (s.guideOverlay.visible) {
@@ -434,7 +460,7 @@ export class Painter {
       c.strokeStyle = s.guideOverlay.color;
       c.fillStyle = s.guideOverlay.color;
       c.lineWidth = 1;
-      c.font = `${Math.round(10 / this.zoom)}px Tahoma, Arial, sans-serif`;
+      c.font = `${Math.round(10 * w / (768 * this.zoom))}px Tahoma, Arial, sans-serif`;
       for (const [name, value] of [
         ["Ascender", s.ascender],
         ["Cap", s.capHeight],

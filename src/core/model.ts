@@ -45,7 +45,7 @@ export type Settings = {
 };
 export type Template = {
   id: string;
-  version: 1;
+  version: 1 | 2;
   characters: number[];
   pages: number[][];
   settings: Settings;
@@ -366,7 +366,7 @@ export function validateProject(p: unknown): asserts p is Project {
       !["pixel", "detailed"].includes(s.mode) ||
       !Number.isInteger(s.resolution) ||
       s.resolution < 8 ||
-      s.resolution > 2048 ||
+      s.resolution > 4096 ||
       typeof s.reference !== "string" ||
       !sourceKnown(v, s.reference)
     )
@@ -476,7 +476,7 @@ export function validateProject(p: unknown): asserts p is Project {
   for (const t of v.templates) {
     if (
       !t ||
-      t.version !== 1 ||
+      ![1, 2].includes(t.version) ||
       !uuid.test(t.id) ||
       !Array.isArray(t.characters) ||
       !t.characters.every(isScalar) ||

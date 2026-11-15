@@ -85,6 +85,7 @@ if (!google.sha) throw Error("Could not resolve Google Fonts revision");
 const base = `https://raw.githubusercontent.com/google/fonts/${google.sha}/ofl`;
 for (const [id, dir, file] of [
   ["noto-sans", "notosans", "NotoSans[wdth,wght].ttf"],
+  ["noto-sans-math", "notosansmath", "NotoSansMath-Regular.ttf"],
   ["unifraktur", "unifrakturmaguntia", "UnifrakturMaguntia-Book.ttf"],
   ["comic-neue", "comicneue", "ComicNeue-Regular.ttf"],
   ["paprika", "paprika", "Paprika-Regular.ttf"],

@@ -34,7 +34,8 @@ test("paint, create a style referencing Regular, save and reopen the family", as
   // Delete the property because the application uses capability detection.
   await page.evaluate(() => delete window.showSaveFilePicker);
   const event = page.waitForEvent("download");
-  await page.locator(".split>button").click();
+  await page.locator(".split summary").click();
+  await page.locator('.split [data-command="save"]').click();
   const download = await event;
   const path = await download.path();
   expect(download.suggestedFilename()).toBe("Family Test.goosnavfont");
@@ -79,6 +80,8 @@ test("custom fonts survive round trip and pixel conversion; both formats load", 
     p.settings.resolution = 1024;
     await f.seedProject(p, id);
     const original = p.glyphs[65].base;
+    const fine=await f.convertResolution(p,{...p.settings,resolution:4096});
+    const vectorPreserved=fine.glyphs[65].base===original&&!fine.glyphs[65].bitmap;
     m.addStyle(p, "Bold", true);
     const regular = p.settings.reference;
     const converted = await f.convertResolution(p, {
@@ -96,6 +99,7 @@ test("custom fonts survive round trip and pixel conversion; both formats load", 
       document.fonts.add(face);
     }
     return {
+      vectorPreserved,
       styles: m.allStyles(restored).length,
       fonts: restored.fonts.length,
       original,
@@ -106,6 +110,7 @@ test("custom fonts survive round trip and pixel conversion; both formats load", 
       source: restored.fonts[0].data === f.toBase64(data),
     };
   });
+  expect(result.vectorPreserved).toBe(true);
   expect(result.styles).toBe(2);
   expect(result.fonts).toBe(1);
   expect(result.source).toBe(true);

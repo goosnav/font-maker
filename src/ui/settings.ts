@@ -26,6 +26,7 @@ export function editSettings(
   project: Project,
   start = false,
   seedSource?: string,
+  preset?: Pick<Settings, "mode" | "resolution">,
 ): Promise<Project | undefined> {
   const d = dialog(
     start ? "Font settings" : "Project settings",
@@ -85,16 +86,16 @@ export function editSettings(
   function resolutions() {
     const mode = input("#setting-mode", d).value;
     $("#setting-resolution", d).innerHTML = (
-      mode === "pixel" ? [16, 24, 32, 48, 64] : [256, 512, 1024, 2048]
+      mode === "pixel" ? [16, 24, 32, 48, 64] : [256, 512, 1024, 2048, 4096]
     )
-      .map((n) => `<option>${n}</option>`)
+      .map((n) => `<option value="${n}">${n}${n === 4096 ? " - Ultra fine" : ""}</option>`)
       .join("");
     input("#setting-resolution", d).value = String(
       sample.settings.mode === mode
         ? sample.settings.resolution
         : mode === "pixel"
           ? 16
-          : 1024,
+          : 2048,
     );
   }
   input("#setting-mode", d).value = sample.settings.mode;
@@ -153,15 +154,26 @@ export function editSettings(
       ...sample,
       glyphs: sample.glyphs[cp] ? { [cp]: sample.glyphs[cp] } : {},
     };
-    const next = await convertResolution(single, settings);
-    if (id !== seq || !d.open) return;
-    sample = {
-      ...sample,
-      settings,
-      glyphs: { ...sample.glyphs, ...next.glyphs },
-    };
-    mount();
+    input("#apply-settings", d).disabled = true;
+    input("#sample-test", d).disabled = true;
+    $(".sample-host", d).inert = true;
+    try {
+      const next = await convertResolution(single, settings);
+      if (id !== seq || !d.open) return;
+      sample = { ...sample, settings, glyphs: { ...sample.glyphs, ...next.glyphs } };
+      mount();
+      $("#sample-notice", d).textContent = "";
+      input("#apply-settings", d).disabled = false;
+    } catch (error) {
+      if (id === seq && d.open) $("#sample-notice", d).textContent = String(error);
+    } finally {
+      if (id === seq && d.open) {
+        input("#sample-test", d).disabled = false;
+        $(".sample-host", d).inert = false;
+      }
+    }
   }
+
   input("#setting-mode", d).onchange = () => {
     resolutions();
     void changed();
@@ -172,7 +184,12 @@ export function editSettings(
   for (const prefix of ["ref", "guide"]) for (const kind of ["visible", "opacity", "color"]) {
     const control = input(`#setting-${prefix}-${kind}`, d);
     control.onchange = null;
-    control.oninput = () => { sample.settings = read(); painter.project = sample; painter.render(); };
+    control.oninput = () => {
+      const settings = read();
+      sample.settings.referenceOverlay = settings.referenceOverlay;
+      sample.settings.guideOverlay = settings.guideOverlay;
+      painter.project = sample; painter.render();
+    };
   }
   $("#sample-clear", d).onclick = () => painter.clear();
   $("#sample-test", d).onclick = async () => {
@@ -235,8 +252,15 @@ export function editSettings(
   };
   $("[data-cancel]", d).onclick = () => d.close();
   mount();
+  if(preset) {
+    input("#setting-mode",d).value=preset.mode;
+    resolutions();
+    input("#setting-resolution",d).value=String(preset.resolution);
+    void changed();
+  }
   return new Promise((resolve) =>
     d.addEventListener("close", () => {
+      seq++;
       painter.destroy();
       resolve(accepted);
     }),

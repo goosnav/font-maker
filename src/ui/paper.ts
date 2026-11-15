@@ -75,7 +75,7 @@ export function renderPaper(
     try {
       cb.status("Creating printable sheets…");
       const t = makeTemplate(p, codes()),
-        bytes = await templatePdf(p, t);
+        bytes = await templatePdf(p, t, catalog);
       cb.commit((next) => next.templates.push(t));
       download(
         bytes,
@@ -207,7 +207,7 @@ async function alignPage(
   };
   function fallbackMap() {
     const choices = p.templates.flatMap((t) =>
-      t.pages.map((page, i) => ({ id: t.id, page: i, codes: page })),
+      t.pages.map((page, i) => ({ id: t.id, version: t.version, page: i, codes: page })),
     );
     $("#page-map", d).innerHTML = `${field(
       "Sheet mapping",
@@ -241,7 +241,7 @@ async function alignPage(
             "QR code was not readable. Choose the printed sheet mapping.";
           return;
         }
-        code = { v: 1, id: m.id, page: m.page, c: m.codes };
+        code = { v: m.version, id: m.id, page: m.page, c: m.codes };
       }
       result = { page: out.canvas, code };
       d.close();
@@ -312,7 +312,7 @@ async function reviewSheet(
   p: Project,
 ): Promise<Review[] | undefined> {
   const items: Review[] = code.c.map((cp, i) => {
-    const r = cellRect(i),
+    const r = cellRect(i, code.v),
       raw = canvas(Math.round((r.w * page.width) / 612)),
       ctx = raw.getContext("2d")!;
     ctx.drawImage(

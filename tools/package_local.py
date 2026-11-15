@@ -17,7 +17,7 @@ RUNTIMES={
 }
 def run(*args,**kwargs):subprocess.run([str(a) for a in args],cwd=ROOT,check=True,**kwargs)
 def main():
- parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=ROOT/'dist/Goosnav-Font-0.1.6-preview.zip');args=parser.parse_args()
+ parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=ROOT/'dist/Goosnav-Font-0.1.7-preview.zip');args=parser.parse_args()
  if sys.platform!='darwin':raise SystemExit('Build the universal macOS image on macOS. Other targets can use tools/m1a/build.py individually.')
  run('npm','run','build')
  run(sys.executable,M1A/'fetch_uv.py','--version','0.11.28','--app-root',ROOT/'app')

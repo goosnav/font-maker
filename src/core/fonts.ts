@@ -12,7 +12,7 @@ import {
   type Glyph,
   type Style,
 } from "./model";
-import { traceMask, simplify } from "./contours";
+import { traceMask } from "./contours";
 import type { Font } from "@pdf-lib/fontkit";
 export type FontInfo = {
   name: string;
@@ -178,7 +178,10 @@ export async function glyphCanvas(
   if (seen.has(g.cp)) throw Error("Circular accent components.");
   seen.add(g.cp);
   if (g.bitmap) {
-    ctx.drawImage(await readImage(g.bitmap), 0, 0, size, size);
+    const image = await createImageBitmap(new Blob([fromBase64(g.bitmap.split(",")[1]) as BlobPart], {type:"image/png"}), {
+      resizeWidth:size, resizeHeight:size, resizeQuality:p.settings.mode === "pixel" ? "pixelated" : "high",
+    });
+    ctx.drawImage(image,0,0); image.close();
   } else if (g.base) {
     const font = await referenceFont(g.base, p);
     if (font.hasGlyphForCodePoint(g.cp)) {
@@ -221,7 +224,7 @@ export async function referenceCanvas(cp: number, p: Project) {
     return glyphCanvas(
       style.glyphs[cp],
       { ...p, settings: style.settings, glyphs: style.glyphs },
-      Math.max(p.settings.resolution, 128),
+      Math.max(Math.min(p.settings.resolution, 1024), 128),
     );
   }
   const font = await referenceFont(ref, p);
@@ -230,7 +233,7 @@ export async function referenceCanvas(cp: number, p: Project) {
   return glyphCanvas(
     { cp, advance: font.glyphForCodePoint(cp).advanceWidth * EM / font.unitsPerEm, status: "inherited", base: ref },
     { ...p, settings: { ...p.settings, mode: "detailed" } },
-    Math.max(p.settings.resolution, 128),
+    Math.max(Math.min(p.settings.resolution, 1024), 128),
   );
 }
 export async function seedProject(
@@ -294,7 +297,7 @@ export async function convertResolution(
     return next;
   let i = 0;
   for (const g of Object.values(next.glyphs)) {
-    if (!g.bitmap && !g.base) continue;
+    if (!g.bitmap && (!g.base || settings.mode === "detailed")) continue;
     const old = await glyphCanvas(g, p);
     const target = canvas(settings.resolution * 1.5);
     const ctx = target.getContext("2d")!;
@@ -303,8 +306,12 @@ export async function convertResolution(
     ctx.drawImage(old, 0, 0, target.width, target.height);
     g.original = g.original || g.bitmap || old.toDataURL();
     g.bitmap = target.toDataURL();
-    if (settings.mode === "pixel")
-      g.bitmap = (await glyphCanvas(g, next)).toDataURL();
+    old.width = old.height = target.width = target.height = 1;
+    if (settings.mode === "pixel") {
+      const snapped=await glyphCanvas(g,next);
+      g.bitmap=snapped.toDataURL();
+      snapped.width=snapped.height=1;
+    }
     if (++i % 20 === 0) {
       progress(`Converting ${i} characters…`);
       await new Promise((r) => setTimeout(r, 0));
@@ -345,17 +352,20 @@ export async function buildFont(
       const d = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
       const alpha = new Uint8Array(c.width * c.height);
       for (let i = 0; i < alpha.length; i++) alpha[i] = d[i * 4 + 3];
-      record.contours = traceMask(alpha, c.width, c.height).map((points) =>
-        p.settings.mode === "detailed"
-          ? simplify(points, (EM / p.settings.resolution) * 0.5)
-          : points,
-      );
-      if (
-        record.contours.reduce((n: number, c: any[]) => n + c.length, 0) > 60000
-      )
-        throw Error(
-          `Character ${String.fromCodePoint(cp)} has too much detail. Reduce its resolution.`,
-        );
+      // Release the large bitmap before fitting outlines off the UI thread.
+      const width=c.width,height=c.height;
+      c.width=c.height=1;
+      const outline = new Worker(new URL("./outline.worker.ts", import.meta.url), {type:"module"});
+      try {
+        Object.assign(record, await new Promise((resolve,reject)=>{
+          outline.onmessage=({data})=>data.error?reject(Error(data.error)):resolve(data.result);
+          outline.onerror=()=>reject(Error("The outline engine could not start. Retry the export."));
+          outline.postMessage({alpha:alpha.buffer,width,height,detailed:p.settings.mode==="detailed"},[alpha.buffer]);
+        }));
+      } finally { outline.terminate(); }
+      const points=record.contours?.reduce((n:number,c:any[])=>n+c.length,0)
+        ?? record.curves?.reduce((n:number,c:any)=>n+c.segments.length*3,0) ?? 0;
+      if(points>60000) throw Error(`Character ${String.fromCodePoint(cp)} has too much detail. Reduce its resolution.`);
       delete record.bitmap;
       delete record.original;
       delete record.base;

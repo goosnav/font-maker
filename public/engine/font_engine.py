@@ -88,7 +88,7 @@ def build_font(request):
     kind = request['format']
     ttf = kind == 'ttf'
     settings = project['settings']
-    units = math.lcm(EM, settings.get('resolution',16)) if settings.get('mode')=='pixel' else EM
+    units = math.lcm(EM, settings.get('resolution',16)) if settings.get('mode')=='pixel' else max(EM, min(8192, settings.get('resolution', 1024)*2))
     if units > 16384: raise ValueError('Choose a supported pixel resolution')
     export_scale = units / EM
     records = {int(g['cp']):g for g in request['glyphs']}
@@ -114,7 +114,7 @@ def build_font(request):
         def replay(record,dx=0,dy=0,depth=0):
             if depth > 8: raise ValueError('Circular or overly deep accent components')
             target = TransformPen(pen,(1,0,0,1,dx,dy))
-            if record.get('base') and not record.get('contours'):
+            if record.get('base') and not record.get('contours') and not record.get('curves'):
                 f=load_font(record['base']); gs=f.getGlyphSet(); source=(f.getBestCmap() or {}).get(record['cp'])
                 if source:
                     rp=DecomposingRecordingPen(gs); gs[source].draw(rp)
@@ -136,6 +136,12 @@ def build_font(request):
                 for x,y in contour[1:]: target.lineTo((x,y))
                 target.closePath()
                 xs.extend(x+dx for x,y in contour); all_y.extend((y+dy)*export_scale for x,y in contour)
+            for path in record.get('curves',[]):
+                target.moveTo(path['start'])
+                for segment in path['segments']:
+                    if segment.get('c1') is not None: target.curveTo(segment['c1'], segment['c2'], segment['end'])
+                    else: target.lineTo(segment['end'])
+                target.closePath()
             for component in record.get('components',[]):
                 child=records.get(component['cp'])
                 if child: replay(child,dx+component['x'],dy+component['y'],depth+1)

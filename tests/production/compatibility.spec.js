@@ -31,7 +31,8 @@ test("missing randomUUID supports startup, styles, font imports, paper, scans an
   await expect(page.locator("#save-state")).toHaveText("Recovery saved");
   await page.evaluate(() => delete window.showSaveFilePicker);
   const saved = page.waitForEvent("download");
-  await page.locator(".split > button").click();
+  await page.locator(".split summary").click();
+  await page.locator('.split [data-command="save"]').click();
   recovery = await readFile(await (await saved).path());
   await page.reload();
   await page.getByRole("button", { name: "Continue drawing" }).click();

@@ -2,6 +2,9 @@ import { createId } from "./core/id";
 import "./style.css";
 import "./touch.css";
 import "./cursors.css";
+import "./book.css";
+import { mountLivePreview, previewMarkup, missingCharacters } from "./ui/live-preview";
+import { previewFont } from "./core/preview";
 import xpLogo from "../assets/goosnav-logo-xp.png";
 import xpLogoIcon from "../assets/goosnav-logo-xp-icon.png";
 import {
@@ -69,9 +72,11 @@ let savedRevision = -1,
   autoChain = Promise.resolve(),
   busyDepth = 0;
 let inspectorOpen = false;
+let bookPanelOpen = false;
+let quickPreview: ReturnType<typeof mountLivePreview> | undefined;
 let importAsNewProject = false;
 const root = $("#app");
-root.innerHTML = `<main class="window"><header class="titlebar"><img src="${xpLogoIcon}" alt=""><strong id="title">Goosnav Font</strong><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></header><div class="commandbar"><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="import-font">Import font…</button><button data-command="settings">Project settings…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">New</button><button data-command="open" title="Open project">Open</button><div class="split"><button data-command="save" title="Save project (⌘/Ctrl+S)">${icon("save")} Save</button><details><summary aria-label="Save options">▾</summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">↶</button><button data-command="redo" title="Redo" aria-label="Redo">↷</button><span class="spacer"></span></div><div class="family-bar" hidden><span class="style-label">Style</span><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span><span class="edition">On this device</span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
+root.innerHTML = `<main class="window"><header class="titlebar"><img src="${xpLogoIcon}" alt=""><strong id="title">Goosnav Font</strong><div class="tabs" role="tablist" aria-label="Workspace"><button role="tab" data-tab="characters">Characters</button><button role="tab" data-tab="paper">Paper</button><button role="tab" data-tab="preview">Preview</button><button role="tab" data-tab="help">Help</button></div></header><div class="commandbar"><nav class="menubar" aria-label="Application menu"><details class="menu"><summary>File</summary><div class="menu-pop"><button data-command="new">New project…</button><button data-command="open">Open project…</button><button data-command="import-font">Import font…</button><button data-command="settings">Project settings…</button><hr><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button><hr><button data-command="quit">Quit</button></div></details><details class="menu"><summary>Edit</summary><div class="menu-pop"><button data-command="undo">Undo</button><button data-command="redo">Redo</button><hr><button data-command="copy">Copy selection</button><button data-command="paste">Paste selection</button><button data-command="clear">Clear character…</button></div></details><button data-command="settings">Settings</button><button data-command="help">Help</button></nav><div class="toolbar"><button data-command="new" title="New project">New</button><button data-command="open" title="Open project">Open</button><div class="split"><details class="save-menu"><summary role="button" aria-label="Save" title="Save options (⌘/Ctrl+S saves project)">${icon("save")}<span>Save</span><span aria-hidden="true">▾</span></summary><div class="menu-pop"><button data-command="save">Save project</button><button data-command="save-as">Save project as…</button><button data-command="export">Export font…</button></div></details></div><span class="divider"></span><button data-command="undo" title="Undo" aria-label="Undo">${icon("undo")}</button><button data-command="redo" title="Redo" aria-label="Redo">${icon("redo")}</button><span class="spacer"></span></div><div class="family-bar" hidden><span class="style-label">Style</span><select class="family-select" id="style-select" aria-label="Font style"></select><button data-command="style">+ Style</button></div></div><section class="workspace" id="workspace"></section><footer class="statusbar"><span id="status" role="status">Ready</span><span id="save-state"></span><span id="mode-status"></span><span class="edition">On this device</span></footer></main><input id="open-project-file" type="file" accept=".goosnavfont" hidden><input id="import-font-file" type="file" accept=".ttf,.otf" hidden><input id="scan-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif" multiple hidden>`;
 const workspace = $("#workspace");
 function status(text: string) {
   $("#status").textContent = text;
@@ -218,6 +223,10 @@ function render() {
   renderId++;
   painter?.destroy();
   painter = undefined;
+  quickPreview?.dispose();
+  quickPreview=undefined;
+  // Keep the shared style selector alive when replacing the workspace.
+  $(".commandbar").append($(".family-bar"));
   header();
   if (tab === "help") {
     renderHelp();
@@ -276,7 +285,7 @@ function selectedCharacters() {
 }
 function renderGrid() {
   const p = project();
-  workspace.innerHTML = `<div class="filters"><input id="character-search" type="search" aria-label="Search characters" placeholder="Find a character, name, or U+…" value="${esc(search)}"><select id="pack-filter" aria-label="Character pack"><option value="">All characters</option>${[...new Set(selectedCharacters().map((c) => c.pack))].map((k) => `<option value="${k}" ${pack === k ? "selected" : ""}>${esc(k.replaceAll("-", " "))}</option>`).join("")}</select><select id="state-filter" aria-label="Character status"><option value="">All states</option>${[
+  workspace.innerHTML = `<div class="character-book ${bookPanelOpen ? "book-panel-open" : ""}"><button class="book-panel-toggle" id="toggle-book-panel" aria-controls="book-sidebar" aria-expanded="${bookPanelOpen}">${bookPanelOpen ? "Hide project &amp; preview" : "Project &amp; preview"}</button><aside class="book-sidebar" id="book-sidebar" aria-label="Project and live preview"><section class="panel"><h3>Project</h3><div class="panel-body"><label>Font name<input id="book-name" value="${esc(p.name)}" maxlength="100"></label><div class="book-settings-row"><label>Mode<select id="book-mode"><option value="pixel" ${p.settings.mode === "pixel" ? "selected" : ""}>Pixel</option><option value="detailed" ${p.settings.mode === "detailed" ? "selected" : ""}>Detailed</option></select></label><label>Pixels per em<select id="book-resolution">${(p.settings.mode === "pixel" ? [16,24,32,48,64] : [256,512,1024,2048,4096]).map(n=>`<option value="${n}" ${n===p.settings.resolution?"selected":""}>${n}</option>`).join("")}</select></label></div><button data-command="settings">Drawing settings…</button></div></section><section class="panel"><h3>Quick preview</h3><div class="panel-body" id="quick-preview"></div></section><section class="panel"><h3>Font actions</h3><div class="panel-body book-actions"><button data-command="import-font">Import font…</button><button data-command="export">Export font…</button><button data-command="clear-all">Clear all…</button></div></section></aside><div class="book-main"><div class="filters"><input id="character-search" type="search" aria-label="Search characters" placeholder="Find a character, name, or U+…" value="${esc(search)}"><select id="pack-filter" aria-label="Character pack"><option value="">All characters</option>${[...new Set(selectedCharacters().map((c) => c.pack))].map((k) => `<option value="${k}" ${pack === k ? "selected" : ""}>${esc(k.replaceAll("-", " "))}</option>`).join("")}</select><select id="state-filter" aria-label="Character status"><option value="">All states</option>${[
     ["unfinished", "Unfinished"],
     ["drawn", "Drawn"],
     ["inherited", "Inherited"],
@@ -288,7 +297,29 @@ function renderGrid() {
     )
     .join(
       "",
-    )}</select><button id="add-characters">+ Characters</button><span class="count" id="character-count"></span></div><div class="grid-wrap"><div class="glyph-grid"></div></div>`;
+    )}</select><button id="add-characters">+ Characters</button></div><div class="book-meta"><div class="book-style-slot"></div><span class="count" id="character-count"></span></div><div class="grid-wrap"><div class="glyph-grid"></div></div></div></div>`;
+  $(".book-style-slot").append($(".family-bar"));
+  quickPreview=mountLivePreview($("#quick-preview"),p);
+  input("#book-name").onchange=()=>{
+    const name=input("#book-name").value.trim();
+    if(!name){input("#book-name").value=project().name;return}
+    if(name!==project().name){commit(next=>next.name=name,false);void quickPreview?.update(project())}
+  };
+  const adjustSettings=async (modeChanged:boolean)=>{
+    const mode=input("#book-mode").value as "pixel"|"detailed";
+    const resolution=modeChanged?(mode==="pixel"?16:2048):Number(input("#book-resolution").value);
+    scrollTop=$(".grid-wrap").scrollTop;
+    const ready=await editSettings(project(),false,undefined,{mode,resolution});
+    if(ready)commit(next=>Object.assign(next,ready));else render();
+  };
+  input("#book-mode").onchange=()=>void adjustSettings(true);
+  input("#book-resolution").onchange=()=>void adjustSettings(false);
+  $("#toggle-book-panel").onclick=()=>{
+    bookPanelOpen=!bookPanelOpen;
+    $(".character-book").classList.toggle("book-panel-open",bookPanelOpen);
+    $("#toggle-book-panel").setAttribute("aria-expanded",String(bookPanelOpen));
+    $("#toggle-book-panel").textContent = bookPanelOpen ? "Hide project & preview" : "Project & preview";
+  };
   function paintGrid() {
     const id = ++renderId;
     const q = search.toLowerCase();
@@ -308,7 +339,7 @@ function renderGrid() {
       chars
         .map((c) => {
           const g = p.glyphs[c.cp];
-          return `<button class="glyph-cell" data-cp="${c.cp}" data-status="${g?.status || "unfinished"}" aria-label="${esc(c.name)} ${label(c.cp)}" title="${esc(c.name)}"><span class="state">${g?.status === "drawn" ? "✓" : g?.status === "inherited" ? "●" : g?.status === "review" ? "!" : ""}</span><span class="thumb">${g?.bitmap ? `<img src="${g.bitmap}" alt="">` : `<span class="placeholder">${isSpace(c.cp) ? "␣" : esc(String.fromCodePoint(c.cp))}</span>`}</span><span class="caption"><span class="glyph-label">${esc(characterCaption(c))}</span><span class="unicode">${label(c.cp)}</span></span></button>`;
+          return `<button class="glyph-cell" data-cp="${c.cp}" data-status="${g?.status || "unfinished"}" aria-label="${esc(c.name)} ${label(c.cp)}" title="${esc(c.name)}"><span class="state">${g?.status === "drawn" ? "✓" : g?.status === "inherited" ? "●" : g?.status === "review" ? "!" : ""}</span><span class="thumb"><span class="placeholder">${isSpace(c.cp) ? "␣" : esc(String.fromCodePoint(c.cp))}</span></span><span class="caption"><span class="glyph-label">${esc(characterCaption(c))}</span><span class="unicode">${label(c.cp)}</span></span></button>`;
         })
         .join("") || '<p class="empty">No matching characters.</p>';
     document.querySelectorAll<HTMLButtonElement>(".glyph-cell").forEach(
@@ -326,12 +357,14 @@ function renderGrid() {
             observer.unobserve(entry.target);
             const cp = Number((entry.target as HTMLElement).dataset.cp),
               g = p.glyphs[cp];
-            if (g && !g.bitmap)
+            if (g)
               void glyphCanvas(g, p, 64)
                 .then((c) => {
-                  if (id !== renderId) return;
+                  if (id !== renderId) { c.width = c.height = 1; return; }
                   const img = new Image();
                   img.src = c.toDataURL();
+                  c.width = c.height = 1;
+                  img.style.imageRendering = p.settings.mode === "detailed" ? "auto" : "pixelated";
                   img.alt = "";
                   entry.target.querySelector(".thumb")?.replaceChildren(img);
                 })
@@ -384,7 +417,7 @@ function renderEditor() {
     )
     .join(
       "",
-    )}<label class="tool-size">Size<input id="brush-size" type="number" value="${p.settings.mode === "pixel" ? 1 : 8}" min="1" max="128"></label></div><div class="canvas-host"></div><aside class="side" id="glyph-controls"><div class="inspector-heading"><strong>Character controls</strong><button id="close-controls" aria-label="Close controls">×</button></div><section class="panel"><h3>Character</h3><div class="panel-body">${field("Advance width", `<input id="advance" type="number" min="0" max="8192" step="${EM / p.settings.resolution}" value="${g?.advance ?? (isSpace(cp) ? p.settings.space : 1280)}">`)}<div class="inline"><button id="auto-space">Fit width</button><button data-command="clear">Clear</button></div><button id="compose">Compose accent…</button><details class="advanced"><summary>Mark anchor</summary><div class="form-grid">${field("X", `<input id="anchor-x" type="number" value="${g?.anchor?.[0] ?? 640}">`)}${field("Y", `<input id="anchor-y" type="number" value="${g?.anchor?.[1] ?? p.settings.capHeight}">`)}</div></details></div></section><section class="panel"><h3>Reference</h3><div class="panel-body"><select id="editor-reference" aria-label="Reference font">${referenceOptions(p)}</select><div class="inline"><label><input id="ref-visible" type="checkbox" ${p.settings.referenceOverlay.visible ? "checked" : ""}> Show</label><input id="ref-color" type="color" aria-label="Reference color" value="${p.settings.referenceOverlay.color}"></div><input id="ref-opacity" aria-label="Reference opacity" type="range" min="0" max="1" step="0.01" value="${p.settings.referenceOverlay.opacity}"><button data-command="import-font">Import font…</button></div></section><section class="panel"><h3>Guidelines</h3><div class="panel-body"><div class="inline"><label><input id="guides-visible" type="checkbox" ${p.settings.guideOverlay.visible ? "checked" : ""}> Show</label><input id="guides-color" type="color" aria-label="Guide color" value="${p.settings.guideOverlay.color}"></div><input id="guides-opacity" aria-label="Guide opacity" type="range" min="0" max="1" step="0.01" value="${p.settings.guideOverlay.opacity}"><label><input id="pixel-grid" type="checkbox" checked> Pixel grid</label></div></section><section class="panel"><h3>View</h3><div class="panel-body"><div class="inline"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-canvas">Fit</button></div><button id="restore-original">Restore original</button></div></section></aside></div>`;
+    )}<label class="tool-size">Size<input id="brush-size" type="number" value="${p.settings.mode === "pixel" ? 1 : Math.max(8, Math.round(p.settings.resolution / 32))}" min="1" max="${p.settings.mode === "pixel" ? 128 : p.settings.resolution / 2}"></label></div><div class="canvas-host"></div><aside class="side" id="glyph-controls"><div class="inspector-heading"><strong>Character controls</strong><button id="close-controls" aria-label="Close controls">×</button></div><section class="panel"><h3>Character</h3><div class="panel-body">${field("Advance width", `<input id="advance" type="number" min="0" max="8192" step="${EM / p.settings.resolution}" value="${g?.advance ?? (isSpace(cp) ? p.settings.space : 1280)}">`)}<div class="inline"><button id="auto-space">Fit width</button><button data-command="clear">Clear</button></div><button id="compose">Compose accent…</button><details class="advanced"><summary>Mark anchor</summary><div class="form-grid">${field("X", `<input id="anchor-x" type="number" value="${g?.anchor?.[0] ?? 640}">`)}${field("Y", `<input id="anchor-y" type="number" value="${g?.anchor?.[1] ?? p.settings.capHeight}">`)}</div></details></div></section><section class="panel"><h3>Reference</h3><div class="panel-body"><select id="editor-reference" aria-label="Reference font">${referenceOptions(p)}</select><div class="inline"><label><input id="ref-visible" type="checkbox" ${p.settings.referenceOverlay.visible ? "checked" : ""}> Show</label><input id="ref-color" type="color" aria-label="Reference color" value="${p.settings.referenceOverlay.color}"></div><input id="ref-opacity" aria-label="Reference opacity" type="range" min="0" max="1" step="0.01" value="${p.settings.referenceOverlay.opacity}"><button data-command="import-font">Import font…</button></div></section><section class="panel"><h3>Guidelines</h3><div class="panel-body"><div class="inline"><label><input id="guides-visible" type="checkbox" ${p.settings.guideOverlay.visible ? "checked" : ""}> Show</label><input id="guides-color" type="color" aria-label="Guide color" value="${p.settings.guideOverlay.color}"></div><input id="guides-opacity" aria-label="Guide opacity" type="range" min="0" max="1" step="0.01" value="${p.settings.guideOverlay.opacity}"><label><input id="pixel-grid" type="checkbox" checked> Pixel grid</label></div></section><section class="panel"><h3>View</h3><div class="panel-body"><div class="inline"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-label">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-canvas">Fit</button></div><button id="restore-original">Restore original</button></div></section></aside></div>`;
   painter = new Painter($(".canvas-host"), p, cp, (bitmap) => {
     commit((next) => {
       next.glyphs[cp] = {
@@ -417,7 +450,7 @@ function renderEditor() {
   $(".side").addEventListener("keydown", event => {
     if (event.key === "Escape") { event.preventDefault(); showControls(false); }
   });
-  painter.size = p.settings.mode === "pixel" ? 1 : 8;
+  painter.size = p.settings.mode === "pixel" ? 1 : Math.max(8, Math.round(p.settings.resolution / 32));
   document.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach(
     (b) =>
       (b.onclick = () => {
@@ -430,7 +463,7 @@ function renderEditor() {
   input("#brush-size").onchange = () =>
     (painter!.size = Math.max(
       1,
-      Math.min(128, Number(input("#brush-size").value) || 1),
+      Math.min(p.settings.mode === "pixel" ? 128 : p.settings.resolution / 2, Number(input("#brush-size").value) || 1),
     ));
   $("#back-grid").onclick = () => {
     activeCP = undefined;
@@ -601,48 +634,31 @@ function composeAccent() {
 }
 async function renderPreview() {
   const p = project();
-  workspace.innerHTML = `<div class="preview-page"><div><textarea class="preview-editor" id="preview-text" aria-label="Preview text">${esc(sessionStorage.getItem("gfn-preview") || "The quick brown fox jumps over the lazy dog.\nΑλφάβητο · Алфавит · 0123456789")}</textarea><div class="inline" style="margin-top:10px"><button class="primary" id="refresh-preview">Refresh preview</button><span id="preview-state" class="note"></span></div><div id="specimens"></div></div><aside><section class="panel"><h3>Spacing</h3><div class="panel-body">${field("Space width", `<input id="preview-space" type="number" value="${p.settings.space}" min="0" max="4096">`)}<label><input id="preview-mono" type="checkbox" ${p.settings.monospace ? "checked" : ""}> Monospace</label><button id="apply-spacing">Apply</button></div></section><section class="panel" style="margin-top:12px"><h3>Kerning pair</h3><div class="panel-body">${field("Two characters", '<input id="kern-pair" value="AV">')}${field("Adjustment", '<input id="kern-value" type="number" value="0" min="-2048" max="2048" step="16">')}<button id="set-kern">Set pair</button><div id="kern-list" class="small"></div></div></section><div class="actions"><button data-command="export">Export font…</button></div></aside></div>`;
+  workspace.innerHTML = `<div class="preview-page"><div><textarea class="preview-editor" id="preview-text" aria-label="Preview text">${esc(sessionStorage.getItem("gfn-preview") || "The quick brown fox jumps over the lazy dog.\nΑλφάβητο · Алфавит · 0123456789")}</textarea><div class="inline" style="margin-top:10px"><button id="refresh-preview" hidden>Retry preview</button><span id="preview-state" class="note"></span></div><div id="specimens"></div></div><aside><section class="panel"><h3>Spacing</h3><div class="panel-body">${field("Space width", `<input id="preview-space" type="number" value="${p.settings.space}" min="0" max="4096">`)}<label><input id="preview-mono" type="checkbox" ${p.settings.monospace ? "checked" : ""}> Monospace</label><button id="apply-spacing">Apply</button></div></section><section class="panel" style="margin-top:12px"><h3>Kerning pair</h3><div class="panel-body">${field("Two characters", '<input id="kern-pair" value="AV">')}${field("Adjustment", '<input id="kern-value" type="number" value="0" min="-2048" max="2048" step="16">')}<button id="set-kern">Set pair</button><div id="kern-list" class="small"></div></div></section><div class="actions"><button data-command="export">Export font…</button></div></aside></div>`;
   let family = "";
   function specimens() {
     const text = input("#preview-text").value;
     sessionStorage.setItem("gfn-preview", text);
-    const missing = [
-      ...new Set(
-        Array.from(text).filter(
-          (c) => !/[\s\n]/.test(c) && !p.glyphs[c.codePointAt(0)!],
-        ),
-      ),
-    ];
+    if (!family && Object.keys(p.glyphs).length) return;
+    const missing = missingCharacters(text, p);
     $("#preview-state").textContent = missing.length
-      ? `Missing: ${missing.join(" ")}`
-      : "All characters are present";
-    $("#specimens").innerHTML = [16, 24, 48, 72]
-      .map(
-        (size) =>
-          `<section class="specimen"><span class="note">${size} px</span><div class="specimen-line" style="font-size:${size}px;font-family:'${family}',sans-serif">${Array.from(
-            text,
-          )
-            .map((c) =>
-              p.glyphs[c.codePointAt(0)!] || /\s/.test(c)
-                ? esc(c)
-                : `<span class="missing" title="Not drawn">□</span>`,
-            )
-            .join("")}</div></section>`,
-      )
-      .join("");
+      ? `Missing: ${missing.join(" ")}` : "All characters are present";
+    $("#specimens").innerHTML = [16, 24, 48, 72].map(size =>
+      `<section class="specimen"><span class="note">${size} px</span><div class="specimen-line" style="font-size:${size}px;font-family:'${family}'">${previewMarkup(text,p)}</div></section>`
+    ).join("");
   }
   async function refresh() {
+    if (!Object.keys(p.glyphs).length) { specimens(); return; }
     const id = renderId;
+    $("#refresh-preview").hidden = true;
+    $("#specimens").replaceChildren();
     $("#preview-state").textContent = "Building preview…";
     try {
-      const bytes = await buildFont(project(), "ttf");
-      family = "preview-" + Date.now();
-      const f = new FontFace(family, bytes as unknown as ArrayBuffer);
-      await f.load();
-      document.fonts.add(f);
+      const f = await previewFont(p);
+      family = f.family;
       if (id === renderId) specimens();
     } catch (e) {
-      if (id === renderId) $("#preview-state").textContent = String(e);
+      if (id === renderId) { $("#preview-state").textContent = String(e); $("#refresh-preview").hidden=false; }
     }
   }
   $("#refresh-preview").onclick = () => void refresh();
@@ -1028,6 +1044,11 @@ async function command(cmd: string) {
         break;
       case "paste":
         painter?.paste();
+        break;
+      case "clear-all":
+        if(history && await confirmAction("Clear all", "Are you sure you want to clear all? Character drawings in every style will be cleared. You can undo this.", "Yes")) {
+          commit(p=>{p.glyphs={};for(const style of Object.values(p.styles))style.glyphs={}});
+        }
         break;
       case "clear":
         if (

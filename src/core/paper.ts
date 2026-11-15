@@ -1,27 +1,35 @@
 import { createId } from "./id";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import jsQR from "jsqr";
-import { isSpace, isScalar, type Project, type Template } from "./model";
+import {
+  isSpace,
+  isScalar,
+  isMark,
+  type Character,
+  type Project,
+  type Template,
+} from "./model";
 import { sourceData, canvas, readImage } from "./fonts";
+// Version 1 geometry stays available for sheets printed before the label correction.
 export const PAGE = {
   width: 612,
   height: 792,
   columns: 5,
   rows: 6,
   left: 42,
-  top: 112,
+  top: 124,
   stepX: 108,
   stepY: 104,
-  cell: 96,
+  cell: 82,
 };
-export function cellRect(index: number) {
+export function cellRect(index: number, version: 1 | 2 = 2) {
   return {
     x: PAGE.left + (index % 5) * PAGE.stepX,
-    y: PAGE.top + Math.floor(index / 5) * PAGE.stepY,
-    w: PAGE.cell,
-    h: PAGE.cell,
+    y: (version === 1 ? 112 : PAGE.top) + Math.floor(index / 5) * PAGE.stepY,
+    w: version === 1 ? 96 : PAGE.cell,
+    h: version === 1 ? 96 : PAGE.cell,
   };
 }
 export function makeTemplate(p: Project, cps: number[]): Template {
@@ -30,7 +38,7 @@ export function makeTemplate(p: Project, cps: number[]): Template {
   );
   return {
     id: createId(),
-    version: 1,
+    version: 2,
     characters,
     pages: Array.from({ length: Math.ceil(characters.length / 30) }, (_, i) =>
       characters.slice(i * 30, (i + 1) * 30),
@@ -38,35 +46,174 @@ export function makeTemplate(p: Project, cps: number[]): Template {
     settings: structuredClone(p.settings),
   };
 }
+export function paperName(cp: number, name?: string) {
+  if (!name) return `U+${cp.toString(16).toUpperCase().padStart(4, "0")}`;
+  if (/^LATIN (CAPITAL|SMALL) LETTER /.test(name)) {
+    const rest = name
+      .replace(/^LATIN (CAPITAL|SMALL) LETTER /, "")
+      .toLowerCase();
+    return `${name.includes("CAPITAL") ? "Uppercase" : "Lowercase"} ${name.includes("CAPITAL") ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest}`;
+  }
+  return name.charAt(0) + name.slice(1).toLowerCase();
+}
+function labelLines(text: string, font: PDFFont, width: number, size: number) {
+  const lines: string[] = [];
+  for (const word of text.split(" ")) {
+    const last = lines.at(-1);
+    if (last && font.widthOfTextAtSize(last + " " + word, size) <= width)
+      lines[lines.length - 1] += " " + word;
+    else lines.push(word);
+  }
+  return lines;
+}
+function guides(
+  page: PDFPage,
+  r: { x: number; y: number; w: number; h: number },
+  t: Template,
+) {
+  page.drawRectangle({
+    x: r.x,
+    y: 792 - r.y - r.h,
+    width: r.w,
+    height: r.h,
+    borderWidth: 0.4,
+    borderColor: rgb(0.76, 0.84, 0.94),
+  });
+  for (const y of [
+    t.settings.ascender,
+    t.settings.capHeight,
+    t.settings.xHeight,
+    0,
+    -t.settings.descender,
+  ]) {
+    const py = 792 - (r.y + ((2048 - y) / 3072) * r.h);
+    if (py < 792 - r.y - r.h || py > 792 - r.y) continue;
+    page.drawLine({
+      start: { x: r.x, y: py },
+      end: { x: r.x + r.w, y: py },
+      thickness: y === 0 ? 0.7 : 0.3,
+      color: rgb(0.64, 0.77, 0.94),
+      dashArray: y === 0 ? undefined : [2, 2],
+    });
+  }
+}
 export async function templatePdf(
   p: Project,
   t: Template,
+  catalog?: Character[],
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  const font = await doc.embedFont(await sourceData("noto-sans"), {
-    subset: true,
-  });
+  // Variable Noto Sans loses outlines with fontkit's subset encoder. Embed it intact.
+  const data = await sourceData("noto-sans");
+  const font = await doc.embedFont(data, { subset: false });
+  const mathResponse = await fetch("/fonts/noto-sans-math.ttf");
+  if (!mathResponse.ok)
+    throw Error(
+      "The printed symbol font could not be loaded. Retry the download.",
+    );
+  const sources = [
+    data,
+    await sourceData("liberation-sans"),
+    await mathResponse.arrayBuffer(),
+  ];
+  const sourceFonts = sources.map((bytes) =>
+    fontkit.create(new Uint8Array(bytes)),
+  );
+  const pdfFonts = new Map<number, PDFFont>([[0, font]]);
+  if (!catalog) {
+    const response = await fetch("/catalog.json");
+    if (!response.ok)
+      throw Error("Character names could not be loaded. Retry the download.");
+    catalog = (await response.json()).characters;
+  }
+  const names = new Map(catalog!.map((c) => [c.cp, c.name]));
   doc.setTitle(`${p.name} drawing sheets`);
   doc.setCreator("Goosnav Font");
   for (let index = 0; index < t.pages.length; index++) {
     const page = doc.addPage([612, 792]),
       codes = t.pages[index];
-    page.drawText("Goosnav Font", { x: 42, y: 736, size: 16, font });
-    page.drawText(`${p.name.slice(0, 45)} / ${p.styleName.slice(0, 25)}`, {
-      x: 42,
-      y: 718,
-      size: 9,
+    page.drawText("Goosnav Font", { x: 58, y: 738, size: 15, font });
+    const family = `${p.name} / ${p.styleName}`;
+    page.drawText(family, {
+      x: 58,
+      y: 724,
+      size: Math.min(8, 195 / font.widthOfTextAtSize(family, 1)),
       font,
     });
-    const payload = JSON.stringify({ v: 1, id: t.id, page: index, c: codes });
+    page.drawText("Draw the character named below each box.", {
+      x: 42,
+      y: 704,
+      size: 8,
+      font,
+    });
+    page.drawText("Use dark ink. Keep strokes inside the box.", {
+      x: 42,
+      y: 691,
+      size: 8,
+      font,
+    });
+    page.drawText("Print at 100%. Keep all four corner marks.", {
+      x: 42,
+      y: 678,
+      size: 8,
+      font,
+    });
+    const example = { x: 294, y: 46, w: 60, h: 60 };
+    page.drawText("EXAMPLE", { x: 294, y: 754, size: 7, font });
+    guides(page, example, t);
+    const baseline = 792 - (example.y + (example.h * 2) / 3);
+    const cap = (t.settings.capHeight * example.h) / 3072;
+    const xheight = (t.settings.xHeight * example.h) / 3072;
+    // Separate sizes align the capital and lowercase examples with this project's guides.
+    page.drawText("A", {
+      x: 298,
+      y: baseline,
+      size: cap / (sourceFonts[0].capHeight / sourceFonts[0].unitsPerEm),
+      font,
+    });
+    page.drawText("g", {
+      x: 324,
+      y: baseline,
+      size: xheight / (sourceFonts[0].xHeight / sourceFonts[0].unitsPerEm),
+      font,
+    });
+    for (const [label, value] of [
+      ["Cap height", t.settings.capHeight],
+      ["x-height", t.settings.xHeight],
+      ["Baseline", 0],
+      ["Descender", -t.settings.descender],
+    ] as [string, number][]) {
+      page.drawText(label, {
+        x: 360,
+        y: 792 - (example.y + ((2048 - value) / 3072) * example.h) - 2,
+        size: 7,
+        font,
+      });
+    }
+    const payload = JSON.stringify({
+      v: t.version,
+      id: t.id,
+      page: index,
+      c: codes,
+    });
     const qr = await QRCode.toDataURL(payload, {
       errorCorrectionLevel: "M",
       margin: 1,
       width: 300,
     });
-    const image = await doc.embedPng(qr);
-    page.drawImage(image, { x: 486, y: 684, width: 72, height: 72 });
+    page.drawImage(await doc.embedPng(qr), {
+      x: 486,
+      y: 684,
+      width: 72,
+      height: 72,
+    });
+    page.drawText(`Sheet ${index + 1} of ${t.pages.length}`, {
+      x: 486,
+      y: 674,
+      size: 8,
+      font,
+    });
     for (const [x, y] of [
       [42, 750],
       [570, 750],
@@ -80,50 +227,49 @@ export async function templatePdf(
         height: 8,
         color: rgb(0, 0, 0),
       });
-    codes.forEach((cp, i) => {
-      const r = cellRect(i);
-      page.drawText(
-        `${String.fromCodePoint(cp)}  U+${cp.toString(16).toUpperCase().padStart(4, "0")}`,
-        { x: r.x, y: 792 - r.y + 3, size: 8, font },
-      );
-      page.drawRectangle({
-        x: r.x,
-        y: 792 - r.y - r.h,
-        width: r.w,
-        height: r.h,
-        borderWidth: 0.35,
-        borderColor: rgb(0.77, 0.84, 0.9),
-      });
-      for (const y of [
-        t.settings.ascender,
-        t.settings.capHeight,
-        t.settings.xHeight,
-        0,
-        -t.settings.descender,
-      ]) {
-        const py = 792 - (r.y + ((2048 - y) / 3072) * r.h);
-        page.drawLine({
-          start: { x: r.x, y: py },
-          end: { x: r.x + r.w, y: py },
-          thickness: y === 0 ? 0.55 : 0.3,
-          color: rgb(0.72, 0.82, 0.9),
+    for (let i = 0; i < codes.length; i++) {
+      const cp = codes[i],
+        r = cellRect(i, t.version);
+      guides(page, r, t);
+      const face = sourceFonts.findIndex((f) => f.hasGlyphForCodePoint(cp));
+      let text = paperName(cp, names.get(cp));
+      if (face >= 0) {
+        if (!pdfFonts.has(face))
+          pdfFonts.set(
+            face,
+            await doc.embedFont(sources[face], { subset: false }),
+          );
+        const sampleFont = pdfFonts.get(face)!;
+        const sample =
+          (isMark(cp) && sourceFonts[face].hasGlyphForCodePoint(0x25cc)
+            ? "◌"
+            : "") + String.fromCodePoint(cp);
+        const size = Math.min(13, 16 / sampleFont.widthOfTextAtSize(sample, 1));
+        page.drawText(sample, {
+          x: r.x + 2,
+          y: 792 - r.y - r.h - 14,
+          size,
+          font: sampleFont,
         });
+      } else text = `U+${cp.toString(16).toUpperCase()} - ${text}`;
+      let size = 7.5,
+        lines = labelLines(text, font, 80, size);
+      while (lines.length > 2 && size > 6) {
+        size -= 0.25;
+        lines = labelLines(text, font, 80, size);
       }
-    });
-    page.drawText(
-      `Actual size / 100%   ·   Dark ink   ·   Keep corner marks visible`,
-      { x: 58, y: 42, size: 8, font },
-    );
-    page.drawText(`${index + 1} / ${t.pages.length}`, {
-      x: 514,
-      y: 42,
-      size: 8,
-      font,
-    });
+      for (let j = 0; j < lines.length; j++)
+        page.drawText(lines[j], {
+          x: r.x + 21,
+          y: 792 - r.y - r.h - (lines.length > 2 ? 4.5 : 7) - j * (size + (lines.length > 2 ? 0.5 : 1)),
+          size,
+          font,
+        });
+    }
   }
   return doc.save();
 }
-export type SheetCode = { v: 1; id: string; page: number; c: number[] };
+export type SheetCode = { v: 1 | 2; id: string; page: number; c: number[] };
 function readSheetCode(
   c: HTMLCanvasElement,
 ): { code: SheetCode; turns: number } | undefined {
@@ -138,7 +284,7 @@ function readSheetCode(
   try {
     const code = JSON.parse(qr.data);
     if (
-      code.v === 1 &&
+      (code.v === 1 || code.v === 2) &&
       typeof code.id === "string" &&
       Number.isInteger(code.page) &&
       code.page >= 0 &&

@@ -62,6 +62,26 @@ class FontEngineTests(unittest.TestCase):
             if kind=='ttf':self.assertEqual(set(font['glyf']['uni0041'].coordinates),{(0,0),(0,256),(256,256),(256,0)})
             else:self.assertEqual(font['CFF '].cff.topDictIndex[0].CharStrings['uni0041'].calcBounds(None),(0,0,256,256))
 
+    def test_detailed_curves_keep_subunit_precision_in_both_formats(self):
+        for kind in ['ttf','otf']:
+            request=self.request(kind)
+            request['project']['settings'].update(mode='detailed',resolution=4096)
+            request['glyphs']=[{'cp':65,'advance':1280,'curves':[{'start':[0.25,0.25], 'segments':[
+                {'c1':[0.25,800.25],'c2':[1024.25,800.25],'end':[1024.25,0.25]},
+                {'end':[0.25,0.25]}]}]}]
+            font=TTFont(io.BytesIO(engine.build_font(request)))
+            self.assertEqual(font['head'].unitsPerEm,8192)
+            self.assertEqual(font['hmtx']['uni0041'][0],5120)
+            if kind=='ttf':
+                glyph=font['glyf']['uni0041']
+                self.assertEqual(glyph.xMin,1)
+                self.assertTrue(any(not (flag & 1) for flag in glyph.flags))
+            else:
+                glyph=font['CFF '].cff.topDictIndex[0].CharStrings['uni0041']
+                glyph.decompile()
+                self.assertTrue(any('curve' in x for x in glyph.program if isinstance(x,str)))
+                self.assertEqual(glyph.calcBounds(None)[0],1)
+
     def test_imported_outlines_keep_native_shape_and_kerning(self):
         path=ROOT/'public/fonts/liberation-sans.ttf'
         if not path.exists(): self.skipTest('Run npm run assets first')

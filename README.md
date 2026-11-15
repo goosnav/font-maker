@@ -4,7 +4,7 @@ Draw a typeface on paper or on screen. Create Regular, Bold, Italic, and custom 
 
 The local and Cloudflare editions share one browser editor and process fonts and scans on the device. Save `.goosnavfont` files for durable storage and transferring projects. The in-app Help tab covers the workflow.
 
-The app opens to the character book with your recovered session, or a default project. The initial popup offers New font, Open project, and Import font; close it to keep drawing. Use the style selector above the book to switch variants. The pixel-grid Goosnav logo is available as PNG and SVG in `assets/`.
+The app opens to the character book with your recovered session, or a default project. The initial popup offers New font, Open project, and Import font; close it to keep drawing. The left panel holds the font name, drawing settings, live text preview, import, export, and Clear all with confirmation and undo. On phones, open Project & preview. Use the style selector above the book to switch variants. Click Save for project and font export options. The pixel-grid Goosnav logo is available as PNG and SVG in `assets/`.
 
 This is a development preview. Cross-built launchers do not establish native platform support. See the downloadable README for verification limits.
 
@@ -60,6 +60,8 @@ A deleted/rotated build-token error requires selecting a valid token in the Work
 
 TTF/OTF imports retain original source files and horizontal kerning. Variable fonts use their default instance. Complex-script shaping and variable-font authoring are not supported. Scripts beyond Latin, Greek, and Cyrillic may be used as visual references, but their shaping is not guaranteed.
 
+Drawing sheets include readable character names, a labeled example, and 30 cells per Letter page. Previously printed sheets remain importable. Detailed drawing defaults to 2,048 pixels per em and offers 4,096; exports fit smooth vector curves, and zoom redraws at screen resolution. Raising resolution does not add detail to existing artwork.
+
 The desktop interface shares the Pixel Tahoma fonts and Luna controls from `gsnv-paint`. Touch screens use larger, smooth Tahoma/Arial text and 44-pixel controls. Portrait tablets have a full-width canvas with controls that open on demand; landscape tablets retain the side panel. Reference names and specimens use the selected font’s own outlines; a failed load offers a retry instead of a fallback specimen.
 
 Third-party notices are in `public/THIRD_PARTY.txt`, `public/licenses`, and downloaded font license files. Use imported fonts only with the rights needed to modify and distribute them.
@@ -72,4 +74,4 @@ On macOS, install Go, uv, and squashfs-tools as build tools, then run:
 python3 tools/package_local.py
 ```
 
-The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.6-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
+The script rebuilds all five launcher images, verifies the bundled uv and AppImage runtimes, copies the adjacent `app/` payload, and creates `dist/Goosnav-Font-0.1.7-preview.zip`. It does not certify cross-built launchers as tested on their target operating systems.
