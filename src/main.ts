@@ -299,7 +299,7 @@ function renderGrid() {
       "",
     )}</select><button id="add-characters">+ Characters</button></div><div class="book-meta"><div class="book-style-slot"></div><span class="count" id="character-count"></span></div><div class="grid-wrap"><div class="glyph-grid"></div></div></div></div>`;
   $(".book-style-slot").append($(".family-bar"));
-  quickPreview=mountLivePreview($("#quick-preview"),p);
+  quickPreview=mountLivePreview($("#quick-preview"),p,()=>{if(!busyDepth)status("Ready")});
   input("#book-name").onchange=()=>{
     const name=input("#book-name").value.trim();
     if(!name){input("#book-name").value=project().name;return}
@@ -656,7 +656,7 @@ async function renderPreview() {
     try {
       const f = await previewFont(p);
       family = f.family;
-      if (id === renderId) specimens();
+      if (id === renderId) { specimens(); if(!busyDepth)status("Ready"); }
     } catch (e) {
       if (id === renderId) { $("#preview-state").textContent = String(e); $("#refresh-preview").hidden=false; }
     }

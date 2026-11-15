@@ -36,6 +36,7 @@ test("book sidebar updates the actual font, edits settings, confirms clear, and 
   await expect(page.locator("#quick-output .missing")).toHaveCount(3);
   await draw(page, 65);
   const first = await loadedPreview(page);
+  await expect(page.locator("#status")).toHaveText("Ready");
   await expect(page.locator("#quick-output .missing")).toHaveCount(1);
   await page.locator("#quick-text").fill("AAA\nA");
   await expect(page.locator("#quick-output")).toHaveText("AAA\nA");
